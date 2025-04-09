@@ -5,62 +5,117 @@ class CollisionHandler:
         self.environment = environment
 
     def handle_collision(self, robot, proposed_position):
-        collisions = []
-
-        for wall in self.environment.get_walls():
-            if self.circle_line_collision(proposed_position, robot.radius, wall):
-                collisions.append(wall)
-
-        if not collisions:
-            # No collision, accept motion
-            return proposed_position
-
-        if len(collisions) > 1:
-            # Colliding with multiple walls: stop movement
-            return robot.position
-
-        # Single collision: slide along wall
-        wall = collisions[0]
-
-        # Compute wall vector
-        wall_vector = (wall[2] - wall[0], wall[3] - wall[1])
-        wall_length = math.hypot(*wall_vector)
-        if wall_length == 0:
-            return robot.position  # invalid wall
-
-        wall_unit = (wall_vector[0] / wall_length, wall_vector[1] / wall_length)
-
-        # Project motion onto wall direction
-        motion_vector = (
+        # Full motion vector
+        full_motion = (
             proposed_position[0] - robot.position[0],
             proposed_position[1] - robot.position[1]
         )
-        dot_product = motion_vector[0] * wall_unit[0] + motion_vector[1] * wall_unit[1]
-        corrected_motion = (dot_product * wall_unit[0], dot_product * wall_unit[1])
 
-        # Apply corrected motion
-        return (
-            robot.position[0] + corrected_motion[0],
-            robot.position[1] + corrected_motion[1]
+        # here we set no motion
+        motion_length = math.hypot(*full_motion)
+        if motion_length == 0:
+            return robot.position
+
+        # Subdivision step size
+        step_size = robot.radius / 3  # safer: smaller than robot size
+        num_steps = max(1, int(motion_length / step_size))
+
+        step_vector = (full_motion[0] / num_steps, full_motion[1] / num_steps)
+
+        current_position = robot.position
+
+        for _ in range(num_steps):
+            next_position = (
+                current_position[0] + step_vector[0],
+                current_position[1] + step_vector[1]
+            )
+
+            # Check collision at this step
+            collisions = []
+            for wall in self.environment.get_walls():
+                if self.will_collide(robot, (next_position[0] - current_position[0], next_position[1] - current_position[1]), wall):
+                    collisions.append(wall)
+
+            if collisions:
+                if len(collisions) > 1:
+                    # we stop completely in corner case
+                    return current_position
+
+                # Backtrack to collision point
+                wall = collisions[0]
+                precise_contact_point = self.find_precise_contact(robot, current_position, next_position, wall)
+
+                # Slide along wall
+                wall_vector = (wall[2] - wall[0], wall[3] - wall[1])
+                wall_length = math.hypot(*wall_vector)
+                if wall_length == 0:
+                    return precise_contact_point
+
+                wall_unit = (wall_vector[0] / wall_length, wall_vector[1] / wall_length)
+
+                # Project step vector onto wall direction
+                remaining_motion = (
+                    next_position[0] - precise_contact_point[0],
+                    next_position[1] - precise_contact_point[1]
+                )
+                dot_product = remaining_motion[0] * wall_unit[0] + remaining_motion[1] * wall_unit[1]
+                projected_motion = (dot_product * wall_unit[0], dot_product * wall_unit[1])
+
+                # Update position
+                current_position = (
+                    precise_contact_point[0] + projected_motion[0],
+                    precise_contact_point[1] + projected_motion[1]
+                )
+                continue  
+
+            current_position = (
+                current_position[0] + step_vector[0],
+                current_position[1] + step_vector[1]
+            )
+
+        return current_position
+    
+    def will_collide(self, robot, motion_vector, wall):
+        next_pos = (
+            robot.position[0] + motion_vector[0],
+            robot.position[1] + motion_vector[1]
         )
 
+        # Check distance from next position to wall
+        distance = self.distance_to_wall(next_pos, wall)
+        return distance <= robot.radius
 
-    def circle_line_collision(self, circle_pos, circle_radius, wall):
-        # Simplified algorithm: check distance from wall to circle center
+
+    def distance_to_wall(self, circle_pos, wall):
+        # return the distance!
         x1, y1, x2, y2 = wall
         cx, cy = circle_pos
 
-        # Compute line segment length
         line_len = math.hypot(x2 - x1, y2 - y1)
         if line_len == 0:
-            return False  # Not a valid wall
+            return float('inf')
 
-        # Project circle center onto wall segment
         t = max(0, min(1, ((cx - x1) * (x2 - x1) + (cy - y1) * (y2 - y1)) / (line_len ** 2)))
         nearest_x = x1 + t * (x2 - x1)
         nearest_y = y1 + t * (y2 - y1)
 
-        # Check distance from circle center to nearest point
-        dist = math.hypot(nearest_x - cx, nearest_y - cy)
+        return math.hypot(nearest_x - cx, nearest_y - cy)
 
-        return dist <= circle_radius
+
+    def find_precise_contact(self, robot, safe_pos, colliding_pos, wall, iterations=10):
+        # Binary search between safe_pos and colliding_pos
+        for _ in range(iterations):
+            mid_pos = (
+                (safe_pos[0] + colliding_pos[0]) / 2,
+                (safe_pos[1] + colliding_pos[1]) / 2
+            )
+            distance = self.distance_to_wall(mid_pos, wall)
+
+            if distance < robot.radius:
+                # Still inside wall: go back
+                colliding_pos = mid_pos
+            else:
+                # Safe: move forward
+                safe_pos = mid_pos
+
+        return safe_pos 

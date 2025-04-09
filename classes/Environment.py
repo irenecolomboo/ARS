@@ -6,13 +6,22 @@ class Environment:
         self.height = height
         self.wall_thickness = wall_thickness
 
-        # Define walls as line segments (x1, y1, x2, y2)
+        # Borders
         self.walls = [
-            (wall_thickness, wall_thickness, width - wall_thickness, wall_thickness),  # Top
-            (width - wall_thickness, wall_thickness, width - wall_thickness, height - wall_thickness),  # Right
-            (width - wall_thickness, height - wall_thickness, wall_thickness, height - wall_thickness),  # Bottom
-            (wall_thickness, height - wall_thickness, wall_thickness, wall_thickness)  # Left
+            (wall_thickness, wall_thickness, width - wall_thickness, wall_thickness),
+            (width - wall_thickness, wall_thickness, width - wall_thickness, height - wall_thickness), 
+            (width - wall_thickness, height - wall_thickness, wall_thickness, height - wall_thickness),  
+            (wall_thickness, height - wall_thickness, wall_thickness, wall_thickness)  
         ]
+        
+        # Concave "C" shape in the middle left to check for concavity
+        self.walls += [
+            
+            (200, 150, 200, 450), 
+            (200, 150, 400, 150),  
+            (200, 450, 400, 450),
+        ]
+
 
     def draw(self, screen):
         wall_color = (200, 0, 0)

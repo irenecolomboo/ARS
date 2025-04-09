@@ -22,10 +22,8 @@ def main():
 
         sim.clear_screen()
 
-        # Draw environment
         environment.draw(sim.screen)
 
-        # Draw robot
         robot.draw(sim.screen)
 
         sim.update_display()
