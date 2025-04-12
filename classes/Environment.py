@@ -13,13 +13,27 @@ class Environment:
             (width - wall_thickness, height - wall_thickness, wall_thickness, height - wall_thickness),  
             (wall_thickness, height - wall_thickness, wall_thickness, wall_thickness)  
         ]
-        
-        # Concave "C" shape in the middle left to check for concavity
+        # 1 Empty plane
+        # self.walls += [
+        # ]
+
+
+        # 2 Concave "C" shape in the middle left to check for concavity
+        # self.walls += [
+        #
+        #     (200, 150, 200, 450),
+        #     (200, 150, 400, 150),
+        #     (200, 450, 400, 450),
+        # ]
+
+        # 3 maze
         self.walls += [
-            
-            (200, 150, 200, 450), 
-            (200, 150, 400, 150),  
-            (200, 450, 400, 450),
+
+            (10, 100, 600, 100),
+            (200, 200, 790, 200),
+            (10, 300, 600, 300),
+            (200, 400, 790, 400),
+            (10, 500, 600, 500),
         ]
 
 

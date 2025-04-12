@@ -8,7 +8,7 @@ def main():
     sim = Simulator()
     environment = Environment(sim.screen.get_width(), sim.screen.get_height())
     collision_handler = CollisionHandler(environment)
-    robot = Robot(position=[400, 300], environment=environment, collision_handler=collision_handler, radius=20)
+    robot = Robot(position=[50, 50], environment=environment, collision_handler=collision_handler, radius=20)
 
     while sim.running:
         sim.handle_events()
