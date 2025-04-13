@@ -58,11 +58,13 @@ class CollisionHandler:
                         precise_contact_point[1] + projected_motion[1]
                     )
 
+                    # Check if it gets trapped
                     if not any(self.will_collide(robot, (
                     trial_position[0] - current_position[0], trial_position[1] - current_position[1]), w) for w in
                                self.environment.get_walls()):
                         current_position = trial_position
                         break
+                # Fallback Behavior
                 else:
                     # Stop completely if no escape route found
                     return precise_contact_point
