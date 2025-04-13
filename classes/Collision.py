@@ -5,23 +5,18 @@ class CollisionHandler:
         self.environment = environment
 
     def handle_collision(self, robot, proposed_position):
-        # Full motion vector
         full_motion = (
             proposed_position[0] - robot.position[0],
             proposed_position[1] - robot.position[1]
         )
 
-        # here we set no motion
         motion_length = math.hypot(*full_motion)
         if motion_length == 0:
             return robot.position
 
-        # Subdivision step size
-        step_size = robot.radius / 3  # safer: smaller than robot size
+        step_size = robot.radius / 3
         num_steps = max(1, int(motion_length / step_size))
-
         step_vector = (full_motion[0] / num_steps, full_motion[1] / num_steps)
-
         current_position = robot.position
 
         for _ in range(num_steps):
@@ -30,51 +25,53 @@ class CollisionHandler:
                 current_position[1] + step_vector[1]
             )
 
-            # Check collision at this step
             collisions = []
             for wall in self.environment.get_walls():
-                if self.will_collide(robot, (next_position[0] - current_position[0], next_position[1] - current_position[1]), wall):
+                if self.will_collide(robot,
+                                     (next_position[0] - current_position[0], next_position[1] - current_position[1]),
+                                     wall):
                     collisions.append(wall)
 
             if collisions:
-                if len(collisions) > 1:
-                    # we stop completely in corner case
-                    return current_position
+                precise_contact_point = current_position
+                for wall in collisions:
+                    precise_contact_point = self.find_precise_contact(robot, current_position, next_position, wall)
 
-                # Backtrack to collision point
-                wall = collisions[0]
-                precise_contact_point = self.find_precise_contact(robot, current_position, next_position, wall)
+                # Try moving along each wall direction to escape collision
+                for wall in collisions:
+                    wall_vector = (wall[2] - wall[0], wall[3] - wall[1])
+                    wall_length = math.hypot(*wall_vector)
+                    if wall_length == 0:
+                        continue
 
-                # Slide along wall
-                wall_vector = (wall[2] - wall[0], wall[3] - wall[1])
-                wall_length = math.hypot(*wall_vector)
-                if wall_length == 0:
+                    wall_unit = (wall_vector[0] / wall_length, wall_vector[1] / wall_length)
+
+                    remaining_motion = (
+                        next_position[0] - precise_contact_point[0],
+                        next_position[1] - precise_contact_point[1]
+                    )
+                    dot_product = remaining_motion[0] * wall_unit[0] + remaining_motion[1] * wall_unit[1]
+                    projected_motion = (dot_product * wall_unit[0], dot_product * wall_unit[1])
+
+                    trial_position = (
+                        precise_contact_point[0] + projected_motion[0],
+                        precise_contact_point[1] + projected_motion[1]
+                    )
+
+                    if not any(self.will_collide(robot, (
+                    trial_position[0] - current_position[0], trial_position[1] - current_position[1]), w) for w in
+                               self.environment.get_walls()):
+                        current_position = trial_position
+                        break
+                else:
+                    # Stop completely if no escape route found
                     return precise_contact_point
 
-                wall_unit = (wall_vector[0] / wall_length, wall_vector[1] / wall_length)
-
-                # Project step vector onto wall direction
-                remaining_motion = (
-                    next_position[0] - precise_contact_point[0],
-                    next_position[1] - precise_contact_point[1]
-                )
-                dot_product = remaining_motion[0] * wall_unit[0] + remaining_motion[1] * wall_unit[1]
-                projected_motion = (dot_product * wall_unit[0], dot_product * wall_unit[1])
-
-                # Update position
-                current_position = (
-                    precise_contact_point[0] + projected_motion[0],
-                    precise_contact_point[1] + projected_motion[1]
-                )
-                continue  
-
-            current_position = (
-                current_position[0] + step_vector[0],
-                current_position[1] + step_vector[1]
-            )
+            else:
+                current_position = next_position
 
         return current_position
-    
+
     def will_collide(self, robot, motion_vector, wall):
         next_pos = (
             robot.position[0] + motion_vector[0],
@@ -118,4 +115,4 @@ class CollisionHandler:
                 # Safe: move forward
                 safe_pos = mid_pos
 
-        return safe_pos 
+        return safe_pos
