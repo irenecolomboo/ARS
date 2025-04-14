@@ -2,7 +2,7 @@ import pygame
 import math
 import numpy as np
 from classes.Sensors import Sensors
-from filters.KalmanFilter import KalmanFilter, wrap_angle
+from filters.EKalmanFilter import EKalmanFilter, wrap_angle
 
 
 class Robot:
@@ -30,7 +30,7 @@ class Robot:
         process_noise = np.diag([0.5, 0.5, 0.1])
         # Measurement noise based on sensor quality.
         measurement_noise = np.diag([0.5 ** 2, (math.radians(5)) ** 2])
-        self.kf = KalmanFilter(init_state, init_cov, process_noise, measurement_noise)
+        self.kf = EKalmanFilter(init_state, init_cov, process_noise, measurement_noise)
 
         # For visualizing trajectories.
         self.true_trajectory = [tuple(self.position)]

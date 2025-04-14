@@ -7,7 +7,7 @@ def wrap_angle(angle):
     return (angle + math.pi) % (2 * math.pi) - math.pi
 
 
-class KalmanFilter:
+class EKalmanFilter:
     def __init__(self, init_state, init_cov, process_noise, measurement_noise):
         """
         Args:
@@ -38,6 +38,7 @@ class KalmanFilter:
         v, omega = control
         theta = self.x[2]
 
+        # Non linear motion model
         new_x = self.x[0] + v * math.cos(theta) * dt
         new_y = self.x[1] + v * math.sin(theta) * dt
         new_theta = wrap_angle(self.x[2] + omega * dt)
