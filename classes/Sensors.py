@@ -38,7 +38,7 @@ class Sensors:
 
         self.readings = new_readings
 
-        print("Sensor readings:", [round(r, 1) for r in self.readings])
+        #print("Sensor readings:", [round(r, 1) for r in self.readings])
 
     def get_line_intersection(self, p1, p2, q1, q2):
         line1 = LineString([p1, p2])
