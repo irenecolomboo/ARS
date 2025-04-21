@@ -36,11 +36,31 @@ class Environment:
             (10, 500, 600, 500),
         ]
 
+        self.landmarks = [
+            (200, 10),  # (x, y)
+            (400, 10),
+            (600, 10),
+            (100, 100),
+            (300, 100),
+            (500, 100),
+            (300, 200),
+            (500, 200),
+            (700, 200),
+            (200, 500),
+            (600, 500)
+        ]
+
 
     def draw(self, screen):
         wall_color = (200, 0, 0)
         for wall in self.walls:
             pygame.draw.line(screen, wall_color, (wall[0], wall[1]), (wall[2], wall[3]), self.wall_thickness)
 
+        for x, y in self.landmarks:
+            pygame.draw.circle(screen, (0, 0, 255), (int(x), int(y)), 6)
+
     def get_walls(self):
         return self.walls
+
+    def get_landmarks(self):
+        return self.landmarks

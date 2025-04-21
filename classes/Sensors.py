@@ -1,13 +1,14 @@
 import math
 import pygame
 from shapely.geometry import LineString
+import numpy as np
 
 class Sensors:
-    def __init__(self, robot, max_distance=200):
+    def __init__(self, robot, max_distance=200,num_sensors=12):
         self.robot = robot
-        self.num_sensors = 12
+        self.num_sensors = num_sensors
         self.max_distance = max_distance
-        self.angles = [math.radians(i * 30) for i in range(self.num_sensors)]
+        self.angles = [math.radians(i * 360/num_sensors) for i in range(self.num_sensors)]
         self.readings = [self.max_distance for _ in range(self.num_sensors)]
 
     def update(self, walls):
@@ -38,7 +39,7 @@ class Sensors:
 
         self.readings = new_readings
 
-        print("Sensor readings:", [round(r, 1) for r in self.readings])
+        #print("Sensor readings:", [round(r, 1) for r in self.readings])
 
     def get_line_intersection(self, p1, p2, q1, q2):
         line1 = LineString([p1, p2])
@@ -57,6 +58,26 @@ class Sensors:
             return points[0]
 
         return None
+
+    def check_if_wall(self,angle,position,walls):
+
+        # Sensor direction
+        sensor_angle = angle
+        start = position
+        end = (
+            start[0] + self.max_distance * math.cos(sensor_angle),
+            start[1] - self.max_distance * math.sin(sensor_angle)
+        )
+
+        min_distance = self.max_distance
+        closest_point = None
+
+        # Check intersection with all walls
+        for wall in walls:
+            intersect_point = self.get_line_intersection(start, end, (wall[0], wall[1]), (wall[2], wall[3]))
+            if intersect_point:
+                return True
+        return False
 
 
     def draw(self, screen):
