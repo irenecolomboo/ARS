@@ -6,14 +6,14 @@ This class implements a basic 2D constant velocity Kalman Filter for tracking a 
 Mathematical highlights:
 - State: [x, y, vx, vy]
 - Prediction step:
-    x' = F x        (predict next state)
-    P' = F P Fᵀ + Q (predict next uncertainty)
+    2. x' = A x + B x  (predict next state)
+    3. P' = A P Aᵀ + Q (predict next uncertainty)
 - Update step:
-    y = z - Hx      (innovation)
-    S = H P Hᵀ + R  (innovation covariance)
-    K = P Hᵀ S⁻¹    (Kalman gain)
-    x = x + K y     (updated state)
-    P = (I - KH)P   (updated uncertainty)
+    y = z - Cx      (innovation)
+    S = C P Cᵀ + R  (innovation covariance)
+    4. K = P Cᵀ S⁻¹    (Kalman gain)
+    5. x = x + K y     (updated state)
+    6. P = (I - KC)P   (updated uncertainty)
 """
 
 
@@ -26,28 +26,36 @@ class StandardKalmanFilter:
         self.P = np.array(init_cov, dtype=float)            # Covariance matrix
         self.Q = np.array(process_noise, dtype=float)       # Process noise
         self.R = np.array(measurement_noise, dtype=float)   # Measurement noise
-        self.H = np.array([[1, 0, 0, 0],
+        self.C = np.array([[1, 0, 0, 0],
                            [0, 1, 0, 0]])  # Measurement model: we observe x and y
 
-    def predict(self, dt):
-        # 🔁 Prediction step
-        F = np.array([[1, 0, dt, 0],
+    def predict(self, dt, u=None):
+        # Prediction step
+        A = np.array([[1, 0, dt, 0],
                       [0, 1, 0, dt],
                       [0, 0, 1, 0],
                       [0, 0, 0, 1]])
 
-        self.x = F @ self.x                     # Predict state
-        self.P = F @ self.P @ F.T + self.Q      # Predict uncertainty
+        if u is not None:
+            # B matrix adjusts prediction based on control input (acceleration)
+            B = np.array([[0.5 * dt ** 2, 0],
+                          [0, 0.5 * dt ** 2],
+                          [dt, 0],
+                          [0, dt]])
+            self.x = A @ self.x + B @ u
+        else:
+            self.x = A @ self.x
+        self.P = A @ self.P @ A.T + self.Q
 
     def update(self, z):
-        # 📥 Update step
+        # Update step
         z = np.array(z)
-        y = z - self.H @ self.x                     # Innovation (residual)
-        S = self.H @ self.P @ self.H.T + self.R     # Innovation covariance
-        K = self.P @ self.H.T @ np.linalg.inv(S)    # Kalman Gain
+        y = z - self.C @ self.x
+        S = self.C @ self.P @ self.C.T + self.R
+        K = self.P @ self.C.T @ np.linalg.inv(S)
 
         self.x = self.x + K @ y
-        self.P = (np.eye(len(self.P)) - K @ self.H) @ self.P    # Update uncertainty
+        self.P = (np.eye(len(self.P)) - K @ self.C) @ self.P
 
     def get_state(self):
         return self.x

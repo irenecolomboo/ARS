@@ -10,6 +10,7 @@ class Robot:
         self.collision_handler = collision_handler
 
         self.position = list(position)
+        self.previousposition = list(position)
         self.radius = radius
         self.angle = angle
 
@@ -19,8 +20,8 @@ class Robot:
         self.rotation_speed = math.radians(5)
 
         # Robot's wheel speeds
-        self.V_l = 0 
-        self.V_r = 0 
+        self.V_l = 0
+        self.V_r = 0
         self.wheel_base = 60  # Distance between wheels
 
         self.max_speed = 5  # Max wheel speed
@@ -39,6 +40,11 @@ class Robot:
         self.trajectory = []
         self.kf = StandardKalmanFilter(init_state=self.position + [0,0],init_cov=self.init_cov,process_noise=self.process_noise,measurement_noise=self.measurement_noise)
 
+        # --- Uncertainty circle attributes ---
+        self.min_uncertainty = 10  # Minimum uncertainty radius
+        self.max_uncertainty = 100  # Maximum uncertainty radius
+        self.uncertainty_growth_rate = 2  # Growth rate per update (you can adjust this)
+        self.uncertainty_radius = self.min_uncertainty
     def handle_keys(self):
         keys = pygame.key.get_pressed()
         increment = self.speed_increment
@@ -91,7 +97,14 @@ class Robot:
         self.sensors.update(self.environment.get_walls())
 
         # Kalman filter
-        self.kf.predict(dt)
+        current_vx = self.kf.x[2]
+        current_vy = self.kf.x[3]
+        ax_cmd = (dx - current_vx) / dt
+        ay_cmd = (dy - current_vy) / dt
+        control_input = np.array([ax_cmd, ay_cmd])
+        #print(control_input)
+
+        self.kf.predict(dt, control_input)
         # 🟡 Simulated noisy measurement (from a sensor, e.g., GPS)
         true_pos = self.position  # e.g., [x_true, y_true]
         landmarks = self.environment.get_landmarks()
@@ -109,8 +122,16 @@ class Robot:
                 distances.append(r)
                 bearings.append(phi)
 
-        if(len(distances) > 0):
+        if(len(distances) > 2):
             pos = -(self.trilateration(copy, distances))
+            self.previousposition = pos
+            #pos = (self.triangulate_with_bearing(copy, distances, bearings))
+
+            # Reset uncertainty since we got valid sensor data
+            self.uncertainty_radius = self.min_uncertainty
+        else:
+            pos = self.previousposition
+            self.uncertainty_radius = min(self.uncertainty_radius + (self.V_l + self.V_r)/4, self.max_uncertainty)
 
         #print(true_pos)
         #print(pos)
@@ -148,7 +169,7 @@ class Robot:
 
         return r, np.rad2deg(phi)  # return bearing in degrees
 
-    def trilateration(self, landmarks, distances):
+    def trilateration(self, landmarks, distances): # Without bearing
         """
         Estimate position from 3 or more landmarks and distances using least squares trilateration.
         """
@@ -166,6 +187,36 @@ class Robot:
 
         pos, _, _, _ = np.linalg.lstsq(A, b, rcond=None)
         return pos.flatten()
+
+    import numpy as np
+
+    def triangulate_with_bearing(self, landmarks, distances, bearings):
+        """
+        Estimate position from 2 landmarks, distances, and bearings.
+        """
+        x0, y0 = landmarks[0]
+        x1, y1 = landmarks[1]
+        r0 = distances[0]
+        bearing0 = bearings[0]
+
+        # Converting bearings to radians
+        bearing0_rad = np.radians(bearing0)
+
+        # Calculate potential position using polar coordinates
+        # Using one landmark, its bearing, and distance
+        x_guess = x0 + r0 * np.cos(bearing0_rad)
+        y_guess = y0 + r0 * np.sin(bearing0_rad)
+
+        # Least-squares fitting to refine position, using distances
+        A = np.array([
+            [2 * (x1 - x0), 2 * (y1 - y0)]
+        ])
+        b = np.array([
+            distances[1] ** 2 - distances[0] ** 2 - x1 ** 2 - y1 ** 2 + x0 ** 2 + y0 ** 2
+        ])
+
+        refined_pos, _, _, _ = np.linalg.lstsq(A, b, rcond=None) # (AᵀA)'Aᵀb
+        return refined_pos.flatten()
 
     def estimate_orientation(self, estimated_pos, landmarks, measured_bearings):
         """
@@ -205,6 +256,14 @@ class Robot:
         # Draw estimated trajectory (green)
         if len(self.estimate_trajectory) > 1:
             pygame.draw.lines(screen, (0, 255, 0), False, self.estimate_trajectory, 2)
+
+        pygame.draw.circle(
+            screen,
+            (0, 0, 255),  # blue color for uncertainty
+            (int(self.position[0]), int(self.position[1])),
+            int(self.uncertainty_radius),
+            2  # thickness of 2 pixels
+        )
 
     def reset(self):
         self.position = [400, 300]
