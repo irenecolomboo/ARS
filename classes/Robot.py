@@ -10,7 +10,6 @@ class Robot:
         self.collision_handler = collision_handler
 
         self.position = list(position)
-        self.previousposition = list(position)
         self.radius = radius
         self.angle = angle
 
@@ -114,7 +113,7 @@ class Robot:
         for landmark in landmarks:
             r, phi = self.get_distance_and_bearing(true_pos, self.angle, landmark)
             #print(r)
-            if r > self.sensors.max_distance:
+            if r > self.sensors.max_distance and self.sensors.check_if_wall(phi, true_pos, self.environment.get_walls()):
                 copy.remove(landmark)
             # if self.sensors.check_if_wall(self.angle,true_pos,self.environment.get_walls()):
             #     continue
@@ -125,12 +124,10 @@ class Robot:
         if(len(distances) > 1): # Can be only 2 for the bearing one but need to be at least 3 for the triangulation
             #pos = -(self.trilateration(copy, distances))
             pos = (self.triangulate_with_bearing(copy, distances, bearings))
-            self.previousposition = pos
 
             # Reset uncertainty since we got valid sensor data
             self.uncertainty_radius = self.min_uncertainty
         else:
-            pos = self.previousposition
             self.uncertainty_radius = min(self.uncertainty_radius + (self.V_l + self.V_r)/4, self.max_uncertainty)
             pos = self.kf.get_state()[:2]
 
