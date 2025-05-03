@@ -122,16 +122,17 @@ class Robot:
                 distances.append(r)
                 bearings.append(phi)
 
-        if(len(distances) > 2):
-            pos = -(self.trilateration(copy, distances))
+        if(len(distances) > 1): # Can be only 2 for the bearing one but need to be at least 3 for the triangulation
+            #pos = -(self.trilateration(copy, distances))
+            pos = (self.triangulate_with_bearing(copy, distances, bearings))
             self.previousposition = pos
-            #pos = (self.triangulate_with_bearing(copy, distances, bearings))
 
             # Reset uncertainty since we got valid sensor data
             self.uncertainty_radius = self.min_uncertainty
         else:
             pos = self.previousposition
             self.uncertainty_radius = min(self.uncertainty_radius + (self.V_l + self.V_r)/4, self.max_uncertainty)
+            pos = self.kf.get_state()[:2]
 
         #print(true_pos)
         #print(pos)
@@ -190,33 +191,56 @@ class Robot:
 
     import numpy as np
 
-    def triangulate_with_bearing(self, landmarks, distances, bearings):
-        """
-        Estimate position from 2 landmarks, distances, and bearings.
-        """
-        x0, y0 = landmarks[0]
-        x1, y1 = landmarks[1]
-        r0 = distances[0]
-        bearing0 = bearings[0]
+    def triangulate_with_bearing(self, landmarks, distances, bearings, bearing_idx=0):
+        if len(landmarks) < 2:
+            raise ValueError("At least two landmarks are required for triangulation.")
 
-        # Converting bearings to radians
-        bearing0_rad = np.radians(bearing0)
+        if not (0 <= bearing_idx < len(landmarks)):
+            raise ValueError("bearing_idx must be within the range of provided landmarks.")
 
-        # Calculate potential position using polar coordinates
-        # Using one landmark, its bearing, and distance
-        x_guess = x0 + r0 * np.cos(bearing0_rad)
-        y_guess = y0 + r0 * np.sin(bearing0_rad)
+        # Get the reference landmark data (the one with the bearing measurement):
+        x_ref, y_ref = landmarks[bearing_idx]
+        r_ref = distances[bearing_idx]
+        # Determine the bearing: if a single angle is provided, use that; otherwise, select from the list.
+        if len(bearings) == 1:
+            bearing_deg = bearings[0]
+        else:
+            bearing_deg = bearings[bearing_idx]
+        bearing_rad = np.radians(bearing_deg)
 
-        # Least-squares fitting to refine position, using distances
-        A = np.array([
-            [2 * (x1 - x0), 2 * (y1 - y0)]
-        ])
-        b = np.array([
-            distances[1] ** 2 - distances[0] ** 2 - x1 ** 2 - y1 ** 2 + x0 ** 2 + y0 ** 2
-        ])
+        # Build the system of equations.
+        A_list = []
+        b_list = []
 
-        refined_pos, _, _, _ = np.linalg.lstsq(A, b, rcond=None) # (AᵀA)'Aᵀb
-        return refined_pos.flatten()
+        # Equation 1: Bearing constraint from the reference landmark.
+        A_list.append([np.sin(bearing_rad), -np.cos(bearing_rad)])
+        b_list.append(np.sin(bearing_rad) * x_ref - np.cos(bearing_rad) * y_ref)
+
+        # Equation 2: For each other landmark, add the distance difference equation.
+        for j in range(len(landmarks)):
+            if j == bearing_idx:
+                continue  # Skip the reference landmark.
+            xj, yj = landmarks[j]
+            rj = distances[j]
+            # The equation: 2*(xj - x_ref)*x + 2*(yj - y_ref)*y =
+            #             (xj² + yj² - x_ref² - y_ref²) - (rj² - r_ref²)
+            A_list.append([2 * (xj - x_ref), 2 * (yj - y_ref)])
+            b_list.append((xj**2 + yj**2 - x_ref**2 - y_ref**2) - (rj**2 - r_ref**2))
+
+        # Convert lists to numpy arrays.
+        A = np.array(A_list)
+        b = np.array(b_list)
+
+        # If only two equations are present, try an exact solve; otherwise, use least squares.
+        if A.shape[0] == 2:
+            try:
+                pos = np.linalg.solve(A, b)
+            except np.linalg.LinAlgError:
+                pos, _, _, _ = np.linalg.lstsq(A, b, rcond=None)
+        else:
+            pos, _, _, _ = np.linalg.lstsq(A, b, rcond=None)
+
+        return pos
 
     def estimate_orientation(self, estimated_pos, landmarks, measured_bearings):
         """
