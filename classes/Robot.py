@@ -3,6 +3,8 @@ import math
 from classes.Sensors import Sensors
 import numpy as np
 from filters.StandardKalmanFilter import StandardKalmanFilter
+from classes.OccupancyGridMap import OccupancyGridMap  # ensure this import is present
+
 class Robot:
     def __init__(self, position, radius=25, angle=0, environment=None, collision_handler=None):
 
@@ -45,6 +47,13 @@ class Robot:
         self.max_uncertainty = 100  # Maximum uncertainty radius
         self.uncertainty_growth_rate = 2  # Growth rate per update (you can adjust this)
         self.uncertainty_radius = self.min_uncertainty
+
+        # In __init__(), after setting self.environment
+        map_width = self.environment.width
+        map_height = self.environment.height
+        resolution = 4  # e.g., 4 pixels per cell, or choose what matches your screen/grid
+        self.occupancy_map = OccupancyGridMap(map_width, map_height, resolution)
+
     def handle_keys(self):
         keys = pygame.key.get_pressed()
         increment = self.speed_increment
@@ -96,6 +105,13 @@ class Robot:
 
         self.sensors.update(self.environment.get_walls())
 
+        # Get scan data
+        sensor_angles = [i * (2 * math.pi / len(self.sensors.readings)) for i in range(len(self.sensors.readings))]
+        robot_pose = (self.position[0], self.position[1], self.angle)
+        scan_points = self.get_scan_points_from_sensors(robot_pose, sensor_angles, self.sensors.readings)
+        # Update occupancy map
+        self.occupancy_map.update_from_scan(self.position, scan_points, max_range=self.sensors.max_distance)
+
         # Kalman filter
         current_vx = self.kf.x[2]
         current_vy = self.kf.x[3]
@@ -105,7 +121,7 @@ class Robot:
         #print(control_input)
 
         self.kf.predict(dt, control_input)
-        # 🟡 Simulated noisy measurement (from a sensor, e.g., GPS)
+        # Simulated noisy measurement (from a sensor, e.g., GPS)
         true_pos = self.position  # e.g., [x_true, y_true]
         landmarks = self.environment.get_landmarks()
         distances = []
@@ -138,13 +154,12 @@ class Robot:
         #print(pos)
         #orientation = self.estimate_orientation(pos, landmarks, bearings)
 
-
         noisy_measurement = pos + np.random.normal(0, 1.0, size=2)
 
-        # 🔵 Update with measurement
+        # Update with measurement
         self.kf.update(noisy_measurement)
 
-        # 🔴 Get the estimated state
+        # Get the estimated state
         estimated_state = self.kf.get_state()
         #print(estimated_state)
 
@@ -288,6 +303,21 @@ class Robot:
             int(self.uncertainty_radius),
             2  # thickness of 2 pixels
         )
+
+    def get_scan_points_from_sensors(self, robot_pose, sensor_angles, sensor_distances):
+        scan_points = []
+        rx, ry, rtheta = robot_pose
+
+        for angle_rel, distance in zip(sensor_angles, sensor_distances):
+            if distance is None or distance <= 0:
+                continue
+            angle_global = rtheta + angle_rel
+            x = rx + distance * math.cos(angle_global)
+            y = ry - distance * math.sin(angle_global)  # note: -sin!
+            scan_points.append((x, y))
+
+        return scan_points
+
 
     def reset(self):
         self.position = [400, 300]

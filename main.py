@@ -1,14 +1,35 @@
+import pygame
 from classes.Simulator import Simulator
 from classes.Robot import Robot
 from classes.Environment import Environment
 from classes.Collision import CollisionHandler
-import pygame
 
 def main():
+    pygame.init()
+
+    # Original simulator screen (for environment and robot)
     sim = Simulator()
-    environment = Environment(sim.screen.get_width(), sim.screen.get_height())
+    env_width = sim.screen.get_width()
+    env_height = sim.screen.get_height()
+
+    # Create environment and robot
+    environment = Environment(env_width, env_height)
     collision_handler = CollisionHandler(environment)
     robot = Robot(position=[50, 50], environment=environment, collision_handler=collision_handler, radius=20)
+
+    # Create a separate surface for occupancy grid
+    grid_surface_width = 400  # Adjust as needed
+    grid_surface_height = env_height
+    scale = 2
+
+    # 👉 ADD THIS: create the occupancy grid surface
+    grid_surface = pygame.Surface((grid_surface_width, grid_surface_height))
+
+    # Create a combined window to hold both views
+    combined_width = env_width + grid_surface_width
+    combined_height = max(env_height, grid_surface_height)
+    combined_display = pygame.display.set_mode((combined_width, combined_height))
+    pygame.display.set_caption("Robot + Occupancy Grid")
 
     while sim.running:
         sim.handle_events()
@@ -20,13 +41,20 @@ def main():
         robot.handle_keys()
         robot.update()
 
+        # ---- Draw environment on the left ----
         sim.clear_screen()
-
         environment.draw(sim.screen)
-
         robot.draw(sim.screen)
 
-        sim.update_display()
+        # ---- Draw occupancy grid on the right ----
+        grid_surface.fill((128, 128, 128))  # unexplored = gray
+        robot.occupancy_map.draw_map_on_screen(grid_surface, scale=scale)
+
+        # ---- Combine both surfaces onto the main display ----
+        combined_display.blit(sim.screen, (0, 0))
+        combined_display.blit(grid_surface, (env_width, 0))
+
+        pygame.display.flip()
         sim.tick()
 
     sim.quit()
