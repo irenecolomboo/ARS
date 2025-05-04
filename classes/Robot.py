@@ -44,6 +44,12 @@ class Robot:
         self.max_uncertainty = 100  # Maximum uncertainty radius
         self.uncertainty_growth_rate = 2  # Growth rate per update (you can adjust this)
         self.uncertainty_radius = self.min_uncertainty
+
+        self.original = pygame.image.load("plane1.png").convert_alpha()
+        self.original.set_colorkey((255, 255, 255))
+        self.image = pygame.transform.rotozoom(self.original, -45, 0.08)
+
+
     def handle_keys(self):
         keys = pygame.key.get_pressed()
         increment = self.speed_increment
@@ -146,6 +152,7 @@ class Robot:
         #print(estimated_state)
 
         self.estimate_trajectory.append(estimated_state[:2])
+
 
     def get_distance_and_bearing(self, robot_pose, degree, landmark_pos):
         x, y = robot_pose
@@ -255,7 +262,13 @@ class Robot:
         return np.rad2deg(theta_avg) % 360
 
     def draw(self, screen):
-        pygame.draw.circle(screen, (255, 100, 50), (int(self.position[0]), int(self.position[1])), self.radius)
+        #pygame.draw.circle(screen, (255, 100, 50), (int(self.position[0]), int(self.position[1])), self.radius)
+
+        # Rotate the image by converting angle from radians to degrees.
+        rotated_image = pygame.transform.rotate(self.image, math.degrees(self.angle))
+        # Update the rect so the rotated image is centered at the position.
+        new_rect = rotated_image.get_rect(center=(self.position[0], self.position[1]))
+        screen.blit(rotated_image, new_rect.topleft)
 
         line_length = self.radius
         end_x = self.position[0] + line_length * math.cos(self.angle)
