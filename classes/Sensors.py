@@ -4,18 +4,18 @@ from shapely.geometry import LineString
 import numpy as np
 
 class Sensors:
-    def __init__(self, robot, max_distance=200,num_sensors=12):
+    def __init__(self, robot, max_distance=200, num_sensors=12):
         self.robot = robot
         self.num_sensors = num_sensors
         self.max_distance = max_distance
-        self.angles = [math.radians(i * 360/num_sensors) for i in range(self.num_sensors)]
+        self.angles = [math.radians(i * 360 / num_sensors) for i in range(self.num_sensors)]
         self.readings = [self.max_distance for _ in range(self.num_sensors)]
 
     def update(self, walls):
         new_readings = []
+        self.scan_points = []
 
         for angle in self.angles:
-            # Sensor direction
             sensor_angle = self.robot.angle + angle
             start = self.robot.position
             end = (
@@ -26,7 +26,6 @@ class Sensors:
             min_distance = self.max_distance
             closest_point = None
 
-            # Check intersection with all walls
             for wall in walls:
                 intersect_point = self.get_line_intersection(start, end, (wall[0], wall[1]), (wall[2], wall[3]))
                 if intersect_point:
@@ -36,10 +35,14 @@ class Sensors:
                         closest_point = intersect_point
 
             new_readings.append(min_distance)
+            if closest_point:
+                self.scan_points.append(closest_point)
+            else:
+                x = start[0] + self.max_distance * math.cos(sensor_angle)
+                y = start[1] - self.max_distance * math.sin(sensor_angle)
+                self.scan_points.append((x, y))
 
         self.readings = new_readings
-
-        #print("Sensor readings:", [round(r, 1) for r in self.readings])
 
     def get_line_intersection(self, p1, p2, q1, q2):
         line1 = LineString([p1, p2])
@@ -51,7 +54,6 @@ class Sensors:
         if intersection.geom_type == 'Point':
             return (intersection.x, intersection.y)
 
-        # If it's a LineString (overlapping), return closest point to sensor start
         if intersection.geom_type == 'LineString':
             points = list(intersection.coords)
             points.sort(key=lambda point: math.hypot(point[0] - p1[0], point[1] - p1[1]))
@@ -59,9 +61,7 @@ class Sensors:
 
         return None
 
-    def check_if_wall(self,angle,position,walls):
-
-        # Sensor direction
+    def check_if_wall(self, angle, position, walls):
         sensor_angle = angle
         start = position
         end = (
@@ -69,16 +69,10 @@ class Sensors:
             start[1] - self.max_distance * math.sin(sensor_angle)
         )
 
-        min_distance = self.max_distance
-        closest_point = None
-
-        # Check intersection with all walls
         for wall in walls:
-            intersect_point = self.get_line_intersection(start, end, (wall[0], wall[1]), (wall[2], wall[3]))
-            if intersect_point:
+            if self.get_line_intersection(start, end, (wall[0], wall[1]), (wall[2], wall[3])):
                 return True
         return False
-
 
     def draw(self, screen):
         font = pygame.font.SysFont(None, 16)
@@ -87,7 +81,6 @@ class Sensors:
             sensor_angle = self.robot.angle + angle
             start_x, start_y = self.robot.position
 
-            # Clip distance at robot radius (if robot is against the wall, sensor reads zero)
             distance = self.readings[i]
             distance = max(0, distance - self.robot.radius)
 
@@ -99,4 +92,3 @@ class Sensors:
             text_surface = font.render(str(int(distance)), True, (0, 0, 0))
             text_rect = text_surface.get_rect(center=(end_x, end_y))
             screen.blit(text_surface, text_rect)
-

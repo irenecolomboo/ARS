@@ -29,7 +29,7 @@ class Robot:
         self.max_speed = 5  # Max wheel speed
         self.speed_increment = 0.1  # Small increment
 
-        self.sensors = Sensors(self,num_sensors=12)
+        self.sensors = Sensors(self, num_sensors=12)
 
         self.estimate_trajectory = []
 
@@ -103,14 +103,11 @@ class Robot:
         self.angle = proposed_angle
         self.position = list(corrected_position)
 
+        # Update sensor readings and scan points
         self.sensors.update(self.environment.get_walls())
 
-        # Get scan data
-        sensor_angles = [i * (2 * math.pi / len(self.sensors.readings)) for i in range(len(self.sensors.readings))]
-        robot_pose = (self.position[0], self.position[1], self.angle)
-        scan_points = self.get_scan_points_from_sensors(robot_pose, sensor_angles, self.sensors.readings)
-        # Update occupancy map
-        self.occupancy_map.update_from_scan(self.position, scan_points, max_range=self.sensors.max_distance)
+        # Update occupancy map with scan points
+        self.occupancy_map.update_from_scan(self.position, self.sensors.scan_points, max_range=self.sensors.max_distance)
 
         # Kalman filter
         current_vx = self.kf.x[2]
@@ -118,51 +115,37 @@ class Robot:
         ax_cmd = (dx - current_vx) / dt
         ay_cmd = (dy - current_vy) / dt
         control_input = np.array([ax_cmd, ay_cmd])
-        #print(control_input)
 
         self.kf.predict(dt, control_input)
+
         # Simulated noisy measurement (from a sensor, e.g., GPS)
-        true_pos = self.position  # e.g., [x_true, y_true]
+        true_pos = self.position
         landmarks = self.environment.get_landmarks()
         distances = []
         bearings = []
         copy = landmarks.copy()
+
         for landmark in landmarks:
             r, phi = self.get_distance_and_bearing(true_pos, self.angle, landmark)
-            #print(r)
             if r > self.sensors.max_distance:
                 copy.remove(landmark)
-            # if self.sensors.check_if_wall(self.angle,true_pos,self.environment.get_walls()):
-            #     continue
             else:
                 distances.append(r)
                 bearings.append(phi)
 
-        if(len(distances) > 1): # Can be only 2 for the bearing one but need to be at least 3 for the triangulation
-            #pos = -(self.trilateration(copy, distances))
-            pos = (self.triangulate_with_bearing(copy, distances, bearings))
+        if(len(distances) > 1):
+            pos = self.triangulate_with_bearing(copy, distances, bearings)
             self.previousposition = pos
-
-            # Reset uncertainty since we got valid sensor data
             self.uncertainty_radius = self.min_uncertainty
         else:
             pos = self.previousposition
             self.uncertainty_radius = min(self.uncertainty_radius + (self.V_l + self.V_r)/4, self.max_uncertainty)
             pos = self.kf.get_state()[:2]
 
-        #print(true_pos)
-        #print(pos)
-        #orientation = self.estimate_orientation(pos, landmarks, bearings)
-
         noisy_measurement = pos + np.random.normal(0, 1.0, size=2)
-
-        # Update with measurement
         self.kf.update(noisy_measurement)
 
-        # Get the estimated state
         estimated_state = self.kf.get_state()
-        #print(estimated_state)
-
         self.estimate_trajectory.append(estimated_state[:2])
 
     def get_distance_and_bearing(self, robot_pose, degree, landmark_pos):
@@ -172,39 +155,11 @@ class Robot:
 
         dx, dy = lx - x, ly - y
         r = np.sqrt(dx ** 2 + dy ** 2)
-
-        # World-frame angle to landmark
         angle_world = np.arctan2(dy, dx)
         theta_rad = np.deg2rad(theta_deg)
-
-        # Relative angle in robot frame
         phi = angle_world - theta_rad
-
-        # Normalize to [-pi, pi]
         phi = (phi + np.pi) % (2 * np.pi) - np.pi
-
-        return r, np.rad2deg(phi)  # return bearing in degrees
-
-    def trilateration(self, landmarks, distances): # Without bearing
-        """
-        Estimate position from 3 or more landmarks and distances using least squares trilateration.
-        """
-        A = []
-        b = []
-        for i in range(1, len(landmarks)):
-            x0, y0 = landmarks[0]
-            xi, yi = landmarks[i]
-            ri2 = distances[i] ** 2
-            r02 = distances[0] ** 2
-            A.append([2 * (xi - x0), 2 * (yi - y0)])
-            b.append([ri2 - r02 - xi ** 2 - yi ** 2 + x0 ** 2 + y0 ** 2])
-        A = np.array(A)
-        b = np.array(b)
-
-        pos, _, _, _ = np.linalg.lstsq(A, b, rcond=None)
-        return pos.flatten()
-
-    import numpy as np
+        return r, np.rad2deg(phi)
 
     def triangulate_with_bearing(self, landmarks, distances, bearings, bearing_idx=0):
         if len(landmarks) < 2:
@@ -213,40 +168,25 @@ class Robot:
         if not (0 <= bearing_idx < len(landmarks)):
             raise ValueError("bearing_idx must be within the range of provided landmarks.")
 
-        # Get the reference landmark data (the one with the bearing measurement):
         x_ref, y_ref = landmarks[bearing_idx]
         r_ref = distances[bearing_idx]
-        # Determine the bearing: if a single angle is provided, use that; otherwise, select from the list.
-        if len(bearings) == 1:
-            bearing_deg = bearings[0]
-        else:
-            bearing_deg = bearings[bearing_idx]
+        bearing_deg = bearings[bearing_idx]
         bearing_rad = np.radians(bearing_deg)
 
-        # Build the system of equations.
-        A_list = []
-        b_list = []
+        A_list = [[np.sin(bearing_rad), -np.cos(bearing_rad)]]
+        b_list = [np.sin(bearing_rad) * x_ref - np.cos(bearing_rad) * y_ref]
 
-        # Equation 1: Bearing constraint from the reference landmark.
-        A_list.append([np.sin(bearing_rad), -np.cos(bearing_rad)])
-        b_list.append(np.sin(bearing_rad) * x_ref - np.cos(bearing_rad) * y_ref)
-
-        # Equation 2: For each other landmark, add the distance difference equation.
         for j in range(len(landmarks)):
             if j == bearing_idx:
-                continue  # Skip the reference landmark.
+                continue
             xj, yj = landmarks[j]
             rj = distances[j]
-            # The equation: 2*(xj - x_ref)*x + 2*(yj - y_ref)*y =
-            #             (xj² + yj² - x_ref² - y_ref²) - (rj² - r_ref²)
             A_list.append([2 * (xj - x_ref), 2 * (yj - y_ref)])
             b_list.append((xj**2 + yj**2 - x_ref**2 - y_ref**2) - (rj**2 - r_ref**2))
 
-        # Convert lists to numpy arrays.
         A = np.array(A_list)
         b = np.array(b_list)
 
-        # If only two equations are present, try an exact solve; otherwise, use least squares.
         if A.shape[0] == 2:
             try:
                 pos = np.linalg.solve(A, b)
@@ -255,22 +195,7 @@ class Robot:
         else:
             pos, _, _, _ = np.linalg.lstsq(A, b, rcond=None)
 
-        return pos
-
-    def estimate_orientation(self, estimated_pos, landmarks, measured_bearings):
-        """
-        Estimate orientation θ of robot from bearings to landmarks.
-        measured_bearings: angles in robot frame (Φ)
-        """
-        angles = []
-        x, y = estimated_pos
-        for (lx, ly), phi in zip(landmarks, measured_bearings):
-            dx, dy = lx - x, ly - y
-            bearing_global = np.arctan2(dy, dx)  # angle in world frame
-            theta = (bearing_global - np.deg2rad(phi)) % (2 * np.pi)
-            angles.append(theta)
-        theta_avg = np.mean(angles)
-        return np.rad2deg(theta_avg) % 360
+        return pos.flatten()
 
     def draw(self, screen):
         pygame.draw.circle(screen, (255, 100, 50), (int(self.position[0]), int(self.position[1])), self.radius)
@@ -281,51 +206,22 @@ class Robot:
         pygame.draw.line(screen, (0, 0, 0), (self.position[0], self.position[1]), (end_x, end_y), 3)
 
         font = pygame.font.SysFont(None, 20)
-        text_left = font.render(f"V_l: {self.V_l:.1f}", True, (0, 0, 0))
-        text_right = font.render(f"V_r: {self.V_r:.1f}", True, (0, 0, 0))
-        screen.blit(text_left, (30, 30))
-        screen.blit(text_right, (30, 50))
+        screen.blit(font.render(f"V_l: {self.V_l:.1f}", True, (0, 0, 0)), (30, 30))
+        screen.blit(font.render(f"V_r: {self.V_r:.1f}", True, (0, 0, 0)), (30, 50))
 
         self.sensors.draw(screen)
 
-        # Draw trajectory
         if len(self.trajectory) > 1:
             pygame.draw.lines(screen, (0, 255, 0), False, self.trajectory, 2)
 
-        # Draw estimated trajectory (green)
         if len(self.estimate_trajectory) > 1:
             pygame.draw.lines(screen, (0, 255, 0), False, self.estimate_trajectory, 2)
 
-        pygame.draw.circle(
-            screen,
-            (0, 0, 255),  # blue color for uncertainty
-            (int(self.position[0]), int(self.position[1])),
-            int(self.uncertainty_radius),
-            2  # thickness of 2 pixels
-        )
-
-    def get_scan_points_from_sensors(self, robot_pose, sensor_angles, sensor_distances):
-        scan_points = []
-        rx, ry, rtheta = robot_pose
-
-        for angle_rel, distance in zip(sensor_angles, sensor_distances):
-            if distance is None or distance <= 0:
-                continue
-            angle_global = rtheta + angle_rel
-            x = rx + distance * math.cos(angle_global)
-            y = ry - distance * math.sin(angle_global)  # note: -sin!
-            scan_points.append((x, y))
-
-        return scan_points
-
+        pygame.draw.circle(screen, (0, 0, 255), (int(self.position[0]), int(self.position[1])), int(self.uncertainty_radius), 2)
 
     def reset(self):
         self.position = [400, 300]
         self.angle = 0
-
         self.V_l = 0
         self.V_r = 0
-
         self.sensors.update(self.environment.get_walls())
-
-

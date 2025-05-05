@@ -37,31 +37,48 @@ class OccupancyGridMap:
     def log_odds_to_prob(self, l):
         l = np.clip(l, -100, 100)  # prevent overflow in exp
         return 1 - 1 / (1 + np.exp(l))
+    
+    def bresenham(self, x0, y0, x1, y1):
+        """Yield grid cells along the line from (x0, y0) to (x1, y1) using Bresenham's algorithm."""
+        x0, y0, x1, y1 = int(x0), int(y0), int(x1), int(y1)
+        dx = abs(x1 - x0)
+        dy = -abs(y1 - y0)
+        sx = 1 if x0 < x1 else -1
+        sy = 1 if y0 < y1 else -1
+        err = dx + dy
+        while True:
+            yield x0, y0
+            if x0 == x1 and y0 == y1:
+                break
+            e2 = 2 * err
+            if e2 >= dy:
+                err += dy
+                x0 += sx
+            if e2 <= dx:
+                err += dx
+                y0 += sy
+
 
     
-    def update_from_scan(self, robot_pose, scan_points, max_range, l_occ=0.85, l_free=-0.4):
-        rx, ry = robot_pose
+    def update_from_scan(self, robot_pos, scan_points, max_range, l_occ=0.85, l_free=-0.4):
+        rx, ry = robot_pos
         ix_r, iy_r = self.world_to_map(rx, ry)
 
-        for iy in range(self.height_cells):
-            for ix in range(self.width_cells):
-                x_cell, y_cell = self.map_to_world(ix, iy)
-                dx = x_cell - rx
-                dy = y_cell - ry
-                distance = math.hypot(dx, dy)
+        for x_hit, y_hit in scan_points:
+            ix_hit, iy_hit = self.world_to_map(x_hit, y_hit)
 
-                if distance <= max_range:
-                    is_obstacle = False
-                    for zx, zy in scan_points:
-                        if abs(zx - x_cell) < self.resolution / 2 and abs(zy - y_cell) < self.resolution / 2:
-                            is_obstacle = True
-                            break
+            # Ray trace from robot to hit point using Bresenham
+            for ix, iy in self.bresenham(ix_r, iy_r, ix_hit, iy_hit):
+                if 0 <= iy < self.height_cells and 0 <= ix < self.width_cells:
+                    self.grid[iy, ix] += l_free  # mark as free
 
-                    delta = l_occ - self.l0 if is_obstacle else l_free - self.l0
-                    self.grid[iy, ix] += delta
+            # Mark the final cell as occupied
+            if 0 <= iy_hit < self.height_cells and 0 <= ix_hit < self.width_cells:
+                self.grid[iy_hit, ix_hit] += l_occ
 
-                    # CLAMP: prevent log-odds from blowing up
-                    self.grid[iy, ix] = np.clip(self.grid[iy, ix], -10, 10)
+        # Clamp grid values to avoid overflow
+        self.grid = np.clip(self.grid, -10, 10)
+
 
     def draw_map_on_screen(self, screen, scale=4):  
         prob_grid = self.get_probability_grid()
