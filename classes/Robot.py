@@ -49,6 +49,10 @@ class Robot:
         self.original.set_colorkey((255, 255, 255))
         self.image = pygame.transform.rotozoom(self.original, -45, 0.08)
 
+        self.road = pygame.image.load("road.jpg")
+        self.road = pygame.transform.rotozoom(self.road, 0, 0.15)
+
+
 
     def handle_keys(self):
         keys = pygame.key.get_pressed()
@@ -119,8 +123,9 @@ class Robot:
         for landmark in landmarks:
             r, phi = self.get_distance_and_bearing(true_pos, self.angle, landmark)
             #print(r)
-            if r > self.sensors.max_distance and self.sensors.check_if_wall(phi, true_pos, self.environment.get_walls()):
-                copy.remove(landmark)
+            if r > self.sensors.max_distance:
+                if self.sensors.check_if_wall(phi, true_pos, self.environment.get_walls()):
+                    copy.remove(landmark)
             # if self.sensors.check_if_wall(self.angle,true_pos,self.environment.get_walls()):
             #     continue
             else:
@@ -269,6 +274,18 @@ class Robot:
         # Update the rect so the rotated image is centered at the position.
         new_rect = rotated_image.get_rect(center=(self.position[0], self.position[1]))
         screen.blit(rotated_image, new_rect.topleft)
+
+        # Make road
+        total = 45
+        for i in range(7):
+            new_rect2 = rotated_image.get_rect(center=(total, 185))
+            screen.blit(self.road, new_rect2)
+            total = total + 120
+        total = 45
+        for i in range(7):
+            new_rect2 = rotated_image.get_rect(center=(total, 320))
+            screen.blit(self.road, new_rect2)
+            total = total + 120
 
         line_length = self.radius
         end_x = self.position[0] + line_length * math.cos(self.angle)
