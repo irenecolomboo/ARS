@@ -52,6 +52,12 @@ class Robot:
         self.road = pygame.image.load("road.jpg")
         self.road = pygame.transform.rotozoom(self.road, 0, 0.15)
 
+        self.roadv = pygame.image.load("road.jpg")
+        self.roadv = pygame.transform.rotozoom(self.roadv, 90, 0.255)
+
+        self.grass = pygame.image.load("grass.jpg")
+        self.grass = pygame.transform.rotozoom(self.grass, 0, 2)
+
 
 
     def handle_keys(self):
@@ -267,25 +273,37 @@ class Robot:
         return np.rad2deg(theta_avg) % 360
 
     def draw(self, screen):
-        #pygame.draw.circle(screen, (255, 100, 50), (int(self.position[0]), int(self.position[1])), self.radius)
 
+        rotated_image = pygame.transform.rotate(self.grass, 0)
+        new_rect2 = rotated_image.get_rect(center=(0, 185))
+        screen.blit(self.grass, new_rect2)
+        # Make road
+        rotated_image = pygame.transform.rotate(self.road,0)
+        total = 45
+        for i in range(7):
+            new_rect2 = rotated_image.get_rect(center=(total, 185))
+            screen.blit(self.road, new_rect2)
+            new_rect2 = rotated_image.get_rect(center=(total, 305))
+            screen.blit(self.road, new_rect2)
+            new_rect2 = rotated_image.get_rect(center=(total, 425))
+            screen.blit(self.road, new_rect2)
+            new_rect2 = rotated_image.get_rect(center=(total, 550))
+            screen.blit(self.road, new_rect2)
+            total = total + 120
+
+        rotated_image = pygame.transform.rotate(self.roadv, 0)
+        total = 125
+        for i in range(3):
+            new_rect2 = rotated_image.get_rect(center=(229, total))
+            screen.blit(self.roadv, new_rect2)
+            total = total + 80
+
+        # pygame.draw.circle(screen, (255, 100, 50), (int(self.position[0]), int(self.position[1])), self.radius)
         # Rotate the image by converting angle from radians to degrees.
         rotated_image = pygame.transform.rotate(self.image, math.degrees(self.angle))
         # Update the rect so the rotated image is centered at the position.
         new_rect = rotated_image.get_rect(center=(self.position[0], self.position[1]))
         screen.blit(rotated_image, new_rect.topleft)
-
-        # Make road
-        total = 45
-        for i in range(7):
-            new_rect2 = rotated_image.get_rect(center=(total, 185))
-            screen.blit(self.road, new_rect2)
-            total = total + 120
-        total = 45
-        for i in range(7):
-            new_rect2 = rotated_image.get_rect(center=(total, 320))
-            screen.blit(self.road, new_rect2)
-            total = total + 120
 
         line_length = self.radius
         end_x = self.position[0] + line_length * math.cos(self.angle)
