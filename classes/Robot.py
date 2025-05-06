@@ -210,6 +210,7 @@ class Robot:
     import numpy as np
 
     def triangulate_with_bearing(self, landmarks, distances, bearings, bearing_idx=0):
+        print(len(landmarks))
         if len(landmarks) < 2:
             raise ValueError("At least two landmarks are required for triangulation.")
 
@@ -239,6 +240,7 @@ class Robot:
             if j == bearing_idx:
                 continue  # Skip the reference landmark.
             xj, yj = landmarks[j]
+            print(xj, yj)
             rj = distances[j]
             # The equation: 2*(xj - x_ref)*x + 2*(yj - y_ref)*y =
             #             (xj² + yj² - x_ref² - y_ref²) - (rj² - r_ref²)

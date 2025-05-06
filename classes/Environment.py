@@ -98,6 +98,8 @@ class Environment:
 
         self.landmarks = [
             (200, 10),  # (x, y)
+            (375, 125),
+            (150, 125),
         ]
 
 
