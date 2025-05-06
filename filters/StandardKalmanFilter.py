@@ -59,3 +59,7 @@ class StandardKalmanFilter:
 
     def get_state(self):
         return self.x
+
+    def reset(self, init_state):
+        self.x = np.array(init_state)
+        self.P = np.eye(len(self.x))  # or keep original init_cov if you prefer

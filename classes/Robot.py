@@ -12,6 +12,9 @@ class Robot:
         self.collision_handler = collision_handler
 
         self.position = list(position)
+        self.start_position = list(position)  # Save the initial starting position
+        self.start_angle = angle              # Save initial orientation    
+
         self.previousposition = list(position)
         self.radius = radius
         self.angle = angle
@@ -220,8 +223,14 @@ class Robot:
         pygame.draw.circle(screen, (0, 0, 255), (int(self.position[0]), int(self.position[1])), int(self.uncertainty_radius), 2)
 
     def reset(self):
-        self.position = [400, 300]
-        self.angle = 0
+        self.position = list(self.start_position)  # Go back to original start
+        self.angle = self.start_angle
+
         self.V_l = 0
         self.V_r = 0
+
+        self.estimate_trajectory = []
+        self.kf.reset(self.start_position + [0, 0])  # Reset the Kalman filter if needed
+
+        self.uncertainty_radius = self.min_uncertainty
         self.sensors.update(self.environment.get_walls())
