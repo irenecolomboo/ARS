@@ -22,9 +22,9 @@ def main():
 
         sim.clear_screen()
 
-        environment.draw(sim.screen)
-
         robot.draw(sim.screen)
+
+        environment.draw(sim.screen)
 
         sim.update_display()
         sim.tick()

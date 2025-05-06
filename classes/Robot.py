@@ -58,6 +58,9 @@ class Robot:
         self.grass = pygame.image.load("grass.jpg")
         self.grass = pygame.transform.rotozoom(self.grass, 0, 2)
 
+        self.tower = pygame.image.load("control_tower.png")
+        self.tower = pygame.transform.rotozoom(self.tower, 0, 0.2)
+
 
 
     def handle_keys(self):
@@ -273,11 +276,24 @@ class Robot:
         return np.rad2deg(theta_avg) % 360
 
     def draw(self, screen):
-
+        # Grass
         rotated_image = pygame.transform.rotate(self.grass, 0)
-        new_rect2 = rotated_image.get_rect(center=(0, 185))
+        new_rect2 = rotated_image.get_rect(center=(170, 240))
         screen.blit(self.grass, new_rect2)
-        # Make road
+
+        # Control Tower
+        rotated_image = pygame.transform.rotate(self.tower, 0)
+        new_rect2 = rotated_image.get_rect(center=(375, 125))
+        screen.blit(self.tower, new_rect2)
+        new_rect2 = rotated_image.get_rect(center=(150, 125))
+        screen.blit(self.tower, new_rect2)
+        new_rect2 = rotated_image.get_rect(center=(375, 365))
+        screen.blit(self.tower, new_rect2)
+        new_rect2 = rotated_image.get_rect(center=(150, 365))
+        screen.blit(self.tower, new_rect2)
+
+
+        # Make road horizontal
         rotated_image = pygame.transform.rotate(self.road,0)
         total = 45
         for i in range(7):
@@ -291,13 +307,15 @@ class Robot:
             screen.blit(self.road, new_rect2)
             total = total + 120
 
+        # Make road vertical
         rotated_image = pygame.transform.rotate(self.roadv, 0)
-        total = 125
+        total = 200
         for i in range(3):
-            new_rect2 = rotated_image.get_rect(center=(229, total))
+            new_rect2 = rotated_image.get_rect(center=(250, total))
             screen.blit(self.roadv, new_rect2)
             total = total + 80
 
+        # Make player
         # pygame.draw.circle(screen, (255, 100, 50), (int(self.position[0]), int(self.position[1])), self.radius)
         # Rotate the image by converting angle from radians to degrees.
         rotated_image = pygame.transform.rotate(self.image, math.degrees(self.angle))
