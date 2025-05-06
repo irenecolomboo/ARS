@@ -32,7 +32,7 @@ class Robot:
         self.max_speed = 5  # Max wheel speed
         self.speed_increment = 0.1  # Small increment
 
-        self.sensors = Sensors(self, num_sensors=12)
+        self.sensors = Sensors(self, max_distance=200, num_sensors=12)
 
         self.estimate_trajectory = []
 
