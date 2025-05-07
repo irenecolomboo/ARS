@@ -132,9 +132,8 @@ class Robot:
         for landmark in landmarks:
             r, phi = self.get_distance_and_bearing(true_pos, self.angle, landmark)
             #print(r)
-            if r > self.sensors.max_distance:
-                if self.sensors.check_if_wall(phi, true_pos, self.environment.get_walls()):
-                    copy.remove(landmark)
+            if r > self.sensors.max_distance and self.sensors.check_if_wall(phi, true_pos, self.environment.get_walls()):
+                copy.remove(landmark)
             # if self.sensors.check_if_wall(self.angle,true_pos,self.environment.get_walls()):
             #     continue
             else:
@@ -236,11 +235,13 @@ class Robot:
         b_list.append(np.sin(bearing_rad) * x_ref - np.cos(bearing_rad) * y_ref)
 
         # Equation 2: For each other landmark, add the distance difference equation.
+        print(len(landmarks))
+        print(len(distances))
         for j in range(len(landmarks)):
             if j == bearing_idx:
                 continue  # Skip the reference landmark.
             xj, yj = landmarks[j]
-            print(xj, yj)
+            #print("this is the ",xj, yj)
             rj = distances[j]
             # The equation: 2*(xj - x_ref)*x + 2*(yj - y_ref)*y =
             #             (xj² + yj² - x_ref² - y_ref²) - (rj² - r_ref²)
