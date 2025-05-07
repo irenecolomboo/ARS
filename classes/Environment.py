@@ -5,6 +5,7 @@ class Environment:
         self.width = width
         self.height = height
         self.wall_thickness = wall_thickness
+        self.big_wall_thickness = 55
 
         # Borders
         self.walls = [
@@ -13,6 +14,7 @@ class Environment:
             (width - wall_thickness, height - wall_thickness, wall_thickness, height - wall_thickness),
             (wall_thickness, height - wall_thickness, wall_thickness, wall_thickness)
         ]
+        self.big_walls = []
         # 1 Empty plane
         # self.walls += [
         # ]
@@ -96,23 +98,44 @@ class Environment:
             (200, 460, 220, 510),
         ]
 
+        self.big_walls += [
+            (300, 245, 690, 245),
+        ]
+
+
         self.landmarks = [
             (200, 10),  # (x, y)
             (375, 125),
             (150, 125),
+            (152, 365),
+            (375, 365),
         ]
 
 
-    def draw(self, screen):
-        wall_color = (0, 200, 0)
-        for wall in self.walls:
-            pygame.draw.line(screen, wall_color, (wall[0], wall[1]), (wall[2], wall[3]), self.wall_thickness)
 
+    def draw(self, screen):
+        # Create a temporary surface with per-pixel alpha
+        wall_surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+
+        # Define a semi-transparent color (RGBA)
+        wall_color = (0, 200, 0, 50)  # 128 makes it semi-transparent
+
+        # Draw walls on the temporary surface
+        for wall in self.walls:
+            pygame.draw.line(wall_surface, wall_color, (wall[0], wall[1]), (wall[2], wall[3]), self.wall_thickness)
+
+        # for wall in self.big_walls:
+        #     pygame.draw.line(wall_surface, (200, 0, 0, 128), (wall[0], wall[1]), (wall[2], wall[3]), self.big_wall_thickness)
+
+        # Blit the temporary surface onto the main screen
+        screen.blit(wall_surface, (0, 0))
+
+        # Draw landmarks normally
         for x, y in self.landmarks:
             pygame.draw.circle(screen, (0, 0, 255), (int(x), int(y)), 6)
 
     def get_walls(self):
-        return self.walls
+        return self.walls + self.big_walls
 
     def get_landmarks(self):
         return self.landmarks

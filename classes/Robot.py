@@ -55,11 +55,17 @@ class Robot:
         self.roadv = pygame.image.load("road.jpg")
         self.roadv = pygame.transform.rotozoom(self.roadv, 90, 0.255)
 
+        self.roadd = pygame.image.load("road.jpg")
+        self.roadd = pygame.transform.rotozoom(self.roadd, 110, 0.22)
+
         self.grass = pygame.image.load("grass.jpg")
         self.grass = pygame.transform.rotozoom(self.grass, 0, 2)
 
         self.tower = pygame.image.load("control_tower.png")
         self.tower = pygame.transform.rotozoom(self.tower, 0, 0.2)
+
+        self.parking = pygame.image.load("parking.png")
+        self.parking = pygame.transform.rotozoom(self.parking, 0, 0.8)
 
 
 
@@ -209,7 +215,6 @@ class Robot:
     import numpy as np
 
     def triangulate_with_bearing(self, landmarks, distances, bearings, bearing_idx=0):
-        print(len(landmarks))
         if len(landmarks) < 2:
             raise ValueError("At least two landmarks are required for triangulation.")
 
@@ -235,8 +240,6 @@ class Robot:
         b_list.append(np.sin(bearing_rad) * x_ref - np.cos(bearing_rad) * y_ref)
 
         # Equation 2: For each other landmark, add the distance difference equation.
-        print(len(landmarks))
-        print(len(distances))
         for j in range(len(landmarks)):
             if j == bearing_idx:
                 continue  # Skip the reference landmark.
@@ -295,6 +298,23 @@ class Robot:
         new_rect2 = rotated_image.get_rect(center=(150, 365))
         screen.blit(self.tower, new_rect2)
 
+        # Make road diagonal
+        rotated_image = pygame.transform.rotate(self.roadd, 0)
+        new_rect2 = rotated_image.get_rect(center=(270, 500))
+        screen.blit(self.roadd, new_rect2)
+
+        # Make road vertical
+        rotated_image = pygame.transform.rotate(self.roadv, 0)
+        total = 200
+        for i in range(3):
+            new_rect2 = rotated_image.get_rect(center=(250, total))
+            screen.blit(self.roadv, new_rect2)
+            total = total + 80
+        total = 247
+        for i in range(2):
+            new_rect2 = rotated_image.get_rect(center=(740, total))
+            screen.blit(self.roadv, new_rect2)
+            total = total + 240
 
         # Make road horizontal
         rotated_image = pygame.transform.rotate(self.road,0)
@@ -310,13 +330,12 @@ class Robot:
             screen.blit(self.road, new_rect2)
             total = total + 120
 
-        # Make road vertical
-        rotated_image = pygame.transform.rotate(self.roadv, 0)
-        total = 200
-        for i in range(3):
-            new_rect2 = rotated_image.get_rect(center=(250, total))
-            screen.blit(self.roadv, new_rect2)
-            total = total + 80
+        #
+        parking_image = pygame.transform.rotate(self.parking, 0)
+        parking_zone = parking_image.get_rect(center=(135, 55))
+        screen.blit(self.parking, parking_zone)
+        parking_zone2 = parking_image.get_rect(center=(277, 55))
+        screen.blit(self.parking, parking_zone2)
 
         # Make player
         # pygame.draw.circle(screen, (255, 100, 50), (int(self.position[0]), int(self.position[1])), self.radius)
