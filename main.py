@@ -42,7 +42,7 @@ def main():
         # ---- Draw environment to left surface ----
         sim.clear_screen()
         environment.draw(sim.screen)
-        robot.draw(sim.screen)
+        robot.draw(sim.screen, grid_surface)
 
         # ---- Draw occupancy grid to right surface ----
         grid_surface.fill((128, 128, 128))  # gray for unexplored

@@ -200,7 +200,7 @@ class Robot:
 
         return pos.flatten()
 
-    def draw(self, screen):
+    def draw(self, screen, screen_Grid):
         pygame.draw.circle(screen, (255, 100, 50), (int(self.position[0]), int(self.position[1])), self.radius)
 
         line_length = self.radius
@@ -214,11 +214,14 @@ class Robot:
 
         self.sensors.draw(screen)
 
-        if len(self.trajectory) > 1:
-            pygame.draw.lines(screen, (0, 255, 0), False, self.trajectory, 2)
+        print(self.estimate_trajectory)
+        self.occupancy_map.draw_map_on_screen(screen_Grid, self.trajectory, self.estimate_trajectory, scale=4)
 
-        if len(self.estimate_trajectory) > 1:
-            pygame.draw.lines(screen, (0, 255, 0), False, self.estimate_trajectory, 2)
+        # if len(self.trajectory) > 1:
+        #     pygame.draw.lines(screen, (0, 255, 0), False, self.trajectory, 2)
+        #
+        # if len(self.estimate_trajectory) > 1:
+        #     pygame.draw.lines(screen, (0, 255, 0), False, self.estimate_trajectory, 2)
 
         pygame.draw.circle(screen, (0, 0, 255), (int(self.position[0]), int(self.position[1])), int(self.uncertainty_radius), 2)
 

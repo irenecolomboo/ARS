@@ -18,6 +18,9 @@ class OccupancyGridMap:
         self.l0 = self.prob_to_log_odds(0.5)  # log odds of 0.5 = 0
         self.grid = np.full((self.height_cells, self.width_cells), self.l0, dtype=np.float32)
 
+        self.trajectory = []
+        self.estimate_trajectory = []
+
     def world_to_map(self, x, y):
         """Convert world coordinates (meters) to grid indices (ix, iy)."""
         ix = int(x / self.resolution)
@@ -80,7 +83,18 @@ class OccupancyGridMap:
         self.grid = np.clip(self.grid, -10, 10)
 
 
-    def draw_map_on_screen(self, screen, scale=4):  
+    def draw_map_on_screen(self, screen, trajectory=[], estimate_trajectory=[], scale=4):
+        if(trajectory==[]):
+            trajectory = self.trajectory
+        if(estimate_trajectory==[]):
+            estimate_trajectory = self.estimate_trajectory
+
+        trajectory = [x / 1.41 for x in trajectory]
+        estimate_trajectory = [x / 1.41 for x in estimate_trajectory]
+
+        self.trajectory = trajectory
+        self.estimate_trajectory = estimate_trajectory
+
         prob_grid = self.get_probability_grid()
         height, width = prob_grid.shape
 
@@ -99,6 +113,16 @@ class OccupancyGridMap:
 
                 rect = pygame.Rect(x * scale, y * scale, scale, scale)
                 pygame.draw.rect(screen, color, rect)
+
+        #print(estimate_trajectory)
+        if len(trajectory) > 1:
+            pygame.draw.lines(screen, (0, 255, 0), False, trajectory, 2)
+
+        if len(estimate_trajectory) > 1:
+            pygame.draw.lines(screen, (0, 255, 0), False, estimate_trajectory, 2)
+
+
+        #pygame.draw.circle(screen, (255, 100, 50), (int(100), int(100)), 50)
 
 
     def get_probability_grid(self):
