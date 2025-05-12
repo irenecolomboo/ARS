@@ -57,6 +57,28 @@ class Robot:
         resolution = 4  # e.g., 4 pixels per cell, or choose what matches your screen/grid
         self.occupancy_map = OccupancyGridMap(map_width, map_height, resolution)
 
+        self.original = pygame.image.load("plane1.png").convert_alpha()
+        self.original.set_colorkey((255, 255, 255))
+        self.image = pygame.transform.rotozoom(self.original, -45, 0.08)
+
+        self.road = pygame.image.load("road.jpg")
+        self.road = pygame.transform.rotozoom(self.road, 0, 0.15)
+
+        self.roadv = pygame.image.load("road.jpg")
+        self.roadv = pygame.transform.rotozoom(self.roadv, 90, 0.255)
+
+        self.roadd = pygame.image.load("road.jpg")
+        self.roadd = pygame.transform.rotozoom(self.roadd, 110, 0.22)
+
+        self.grass = pygame.image.load("grass.jpg")
+        self.grass = pygame.transform.rotozoom(self.grass, 0, 2)
+
+        self.tower = pygame.image.load("control_tower.png")
+        self.tower = pygame.transform.rotozoom(self.tower, 0, 0.2)
+
+        self.parking = pygame.image.load("parking.png")
+        self.parking = pygame.transform.rotozoom(self.parking, 0, 0.8)
+
     def handle_keys(self):
         keys = pygame.key.get_pressed()
         increment = self.speed_increment
@@ -201,7 +223,68 @@ class Robot:
         return pos.flatten()
 
     def draw(self, screen, screen_Grid):
-        pygame.draw.circle(screen, (255, 100, 50), (int(self.position[0]), int(self.position[1])), self.radius)
+        # Grass
+        rotated_image = pygame.transform.rotate(self.grass, 0)
+        new_rect2 = rotated_image.get_rect(center=(170, 240))
+        screen.blit(self.grass, new_rect2)
+
+        # Control Tower
+        rotated_image = pygame.transform.rotate(self.tower, 0)
+        new_rect2 = rotated_image.get_rect(center=(375, 125))
+        screen.blit(self.tower, new_rect2)
+        new_rect2 = rotated_image.get_rect(center=(150, 125))
+        screen.blit(self.tower, new_rect2)
+        new_rect2 = rotated_image.get_rect(center=(375, 365))
+        screen.blit(self.tower, new_rect2)
+        new_rect2 = rotated_image.get_rect(center=(150, 365))
+        screen.blit(self.tower, new_rect2)
+
+        # Make road diagonal
+        rotated_image = pygame.transform.rotate(self.roadd, 0)
+        new_rect2 = rotated_image.get_rect(center=(270, 500))
+        screen.blit(self.roadd, new_rect2)
+
+        # Make road vertical
+        rotated_image = pygame.transform.rotate(self.roadv, 0)
+        total = 200
+        for i in range(3):
+            new_rect2 = rotated_image.get_rect(center=(250, total))
+            screen.blit(self.roadv, new_rect2)
+            total = total + 80
+        total = 247
+        for i in range(2):
+            new_rect2 = rotated_image.get_rect(center=(740, total))
+            screen.blit(self.roadv, new_rect2)
+            total = total + 240
+
+        # Make road horizontal
+        rotated_image = pygame.transform.rotate(self.road, 0)
+        total = 45
+        for i in range(7):
+            new_rect2 = rotated_image.get_rect(center=(total, 185))
+            screen.blit(self.road, new_rect2)
+            new_rect2 = rotated_image.get_rect(center=(total, 305))
+            screen.blit(self.road, new_rect2)
+            new_rect2 = rotated_image.get_rect(center=(total, 425))
+            screen.blit(self.road, new_rect2)
+            new_rect2 = rotated_image.get_rect(center=(total, 550))
+            screen.blit(self.road, new_rect2)
+            total = total + 120
+
+        #
+        parking_image = pygame.transform.rotate(self.parking, 0)
+        parking_zone = parking_image.get_rect(center=(135, 55))
+        screen.blit(self.parking, parking_zone)
+        parking_zone2 = parking_image.get_rect(center=(277, 55))
+        screen.blit(self.parking, parking_zone2)
+
+        # Player draw
+        # pygame.draw.circle(screen, (255, 100, 50), (int(self.position[0]), int(self.position[1])), self.radius)
+        # Rotate the image by converting angle from radians to degrees.
+        rotated_image = pygame.transform.rotate(self.image, math.degrees(self.angle))
+        # Update the rect so the rotated image is centered at the position.
+        new_rect = rotated_image.get_rect(center=(self.position[0], self.position[1]))
+        screen.blit(rotated_image, new_rect.topleft)
 
         line_length = self.radius
         end_x = self.position[0] + line_length * math.cos(self.angle)
@@ -214,7 +297,6 @@ class Robot:
 
         self.sensors.draw(screen)
 
-        print(self.estimate_trajectory)
         self.occupancy_map.draw_map_on_screen(screen_Grid, self.trajectory, self.estimate_trajectory, scale=4)
 
         # if len(self.trajectory) > 1:
