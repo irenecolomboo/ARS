@@ -3,8 +3,7 @@ import math
 from classes.Sensors import Sensors
 import numpy as np
 from filters.StandardKalmanFilter import StandardKalmanFilter
-from classes.OccupancyGridMap import OccupancyGridMap  
-from classes.Astar import astar  
+from classes.OccupancyGridMap import OccupancyGridMap  # ensure this import is present
 
 class Robot:
     def __init__(self, position, radius=25, angle=0, environment=None, collision_handler=None):
@@ -22,7 +21,7 @@ class Robot:
 
         self.velocity = 0
         self.angular_velocity = 0
-        self.speed = 2
+        self.speed = 1
         self.rotation_speed = math.radians(5)
 
         # Robot's wheel speeds
@@ -79,36 +78,6 @@ class Robot:
 
         self.parking = pygame.image.load("parking.png")
         self.parking = pygame.transform.rotozoom(self.parking, 0, 0.8)
-
-        # Goal
-        self.goal = None
-        self.current_path = []
-
-    def follow_path(self):
-        if not self.current_path:
-            return
-
-        target = self.current_path[0]
-        dx = target[0] - self.position[0]
-        dy = target[1] - self.position[1]
-
-        if math.hypot(dx, dy) < 5:
-            self.current_path.pop(0)
-        else:
-            self.drive_toward(target)
-
-    def drive_toward(self, target):
-        dx = target[0] - self.position[0]
-        dy = target[1] - self.position[1]
-        angle_to_target = math.atan2(-dy, dx)
-        angle_diff = (angle_to_target - self.angle + math.pi) % (2 * math.pi) - math.pi
-
-        if abs(angle_diff) > 0.2:
-            self.V_l = -1
-            self.V_r = 1
-        else:
-            self.V_l = self.V_r = 2
-
 
     def handle_keys(self):
         keys = pygame.key.get_pressed()
@@ -254,61 +223,7 @@ class Robot:
         return pos.flatten()
 
     def draw(self, screen, screen_Grid):
-        # Grass
-        rotated_image = pygame.transform.rotate(self.grass, 0)
-        new_rect2 = rotated_image.get_rect(center=(170, 240))
-        screen.blit(self.grass, new_rect2)
-
-        # Control Tower
-        rotated_image = pygame.transform.rotate(self.tower, 0)
-        new_rect2 = rotated_image.get_rect(center=(375, 125))
-        screen.blit(self.tower, new_rect2)
-        new_rect2 = rotated_image.get_rect(center=(150, 125))
-        screen.blit(self.tower, new_rect2)
-        new_rect2 = rotated_image.get_rect(center=(375, 365))
-        screen.blit(self.tower, new_rect2)
-        new_rect2 = rotated_image.get_rect(center=(150, 365))
-        screen.blit(self.tower, new_rect2)
-
-        # Make road diagonal
-        rotated_image = pygame.transform.rotate(self.roadd, 0)
-        new_rect2 = rotated_image.get_rect(center=(270, 500))
-        screen.blit(self.roadd, new_rect2)
-
-        # Make road vertical
-        rotated_image = pygame.transform.rotate(self.roadv, 0)
-        total = 200
-        for i in range(3):
-            new_rect2 = rotated_image.get_rect(center=(250, total))
-            screen.blit(self.roadv, new_rect2)
-            total = total + 80
-        total = 247
-        for i in range(2):
-            new_rect2 = rotated_image.get_rect(center=(740, total))
-            screen.blit(self.roadv, new_rect2)
-            total = total + 240
-
-        # Make road horizontal
-        rotated_image = pygame.transform.rotate(self.road, 0)
-        total = 45
-        for i in range(7):
-            new_rect2 = rotated_image.get_rect(center=(total, 185))
-            screen.blit(self.road, new_rect2)
-            new_rect2 = rotated_image.get_rect(center=(total, 305))
-            screen.blit(self.road, new_rect2)
-            new_rect2 = rotated_image.get_rect(center=(total, 425))
-            screen.blit(self.road, new_rect2)
-            new_rect2 = rotated_image.get_rect(center=(total, 550))
-            screen.blit(self.road, new_rect2)
-            total = total + 120
-
-        #
-        parking_image = pygame.transform.rotate(self.parking, 0)
-        parking_zone = parking_image.get_rect(center=(135, 55))
-        screen.blit(self.parking, parking_zone)
-        parking_zone2 = parking_image.get_rect(center=(277, 55))
-        screen.blit(self.parking, parking_zone2)
-
+        
         # Player draw
         # pygame.draw.circle(screen, (255, 100, 50), (int(self.position[0]), int(self.position[1])), self.radius)
         # Rotate the image by converting angle from radians to degrees.
@@ -352,17 +267,20 @@ class Robot:
         self.sensors.update(self.environment.get_walls())
 
 
-    def plan_path_to(self, goal_world_pos):
-        grid = self.occupancy_map.get_probability_grid()
-        
-        start_cell = self.occupancy_map.world_to_map(self.position[0], self.position[1])
-        goal_cell = self.occupancy_map.world_to_map(goal_world_pos[0], goal_world_pos[1])
-        
-        path_cells = astar(grid, start_cell, goal_cell, threshold=0.6)
-        if path_cells is None:
-            print("No path found")
-            return []
-
-        # Convert to world coords
-        return [self.occupancy_map.map_to_world(ix, iy) for (ix, iy) in path_cells]
-
+    def follow_move_command(self, move):
+        if move == "UP":
+            self.V_l = self.speed
+            self.V_r = self.speed
+            self.angle = math.radians(90)
+        elif move == "DOWN":
+            self.V_l = self.speed
+            self.V_r = self.speed
+            self.angle = math.radians(-90)
+        elif move == "LEFT":
+            self.V_l = self.speed
+            self.V_r = self.speed
+            self.angle = math.radians(180)
+        elif move == "RIGHT":
+            self.V_l = self.speed
+            self.V_r = self.speed
+            self.angle = math.radians(0)
