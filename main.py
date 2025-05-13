@@ -29,6 +29,13 @@ def main():
     combined_display = pygame.display.set_mode((combined_width, combined_height))
     pygame.display.set_caption("Robot + Occupancy Grid")
 
+    # Choose a goal in world coordinates
+    robot.goal = (700, 255)  # e.g., toward the runway or a parking area
+
+    # Plan path using A*
+    robot.current_path = robot.plan_path_to(robot.goal)
+
+
     while sim.running:
         sim.handle_events()
         keys = pygame.key.get_pressed()
@@ -38,6 +45,7 @@ def main():
 
         robot.handle_keys()
         robot.update()
+        robot.follow_path()
 
         # ---- Draw environment to left surface ----
         sim.clear_screen()

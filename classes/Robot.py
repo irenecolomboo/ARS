@@ -3,7 +3,8 @@ import math
 from classes.Sensors import Sensors
 import numpy as np
 from filters.StandardKalmanFilter import StandardKalmanFilter
-from classes.OccupancyGridMap import OccupancyGridMap  # ensure this import is present
+from classes.OccupancyGridMap import OccupancyGridMap  
+from classes.Astar import astar  
 
 class Robot:
     def __init__(self, position, radius=25, angle=0, environment=None, collision_handler=None):
@@ -78,6 +79,36 @@ class Robot:
 
         self.parking = pygame.image.load("parking.png")
         self.parking = pygame.transform.rotozoom(self.parking, 0, 0.8)
+
+        # Goal
+        self.goal = None
+        self.current_path = []
+
+    def follow_path(self):
+        if not self.current_path:
+            return
+
+        target = self.current_path[0]
+        dx = target[0] - self.position[0]
+        dy = target[1] - self.position[1]
+
+        if math.hypot(dx, dy) < 5:
+            self.current_path.pop(0)
+        else:
+            self.drive_toward(target)
+
+    def drive_toward(self, target):
+        dx = target[0] - self.position[0]
+        dy = target[1] - self.position[1]
+        angle_to_target = math.atan2(-dy, dx)
+        angle_diff = (angle_to_target - self.angle + math.pi) % (2 * math.pi) - math.pi
+
+        if abs(angle_diff) > 0.2:
+            self.V_l = -1
+            self.V_r = 1
+        else:
+            self.V_l = self.V_r = 2
+
 
     def handle_keys(self):
         keys = pygame.key.get_pressed()
@@ -319,3 +350,19 @@ class Robot:
 
         self.uncertainty_radius = self.min_uncertainty
         self.sensors.update(self.environment.get_walls())
+
+
+    def plan_path_to(self, goal_world_pos):
+        grid = self.occupancy_map.get_probability_grid()
+        
+        start_cell = self.occupancy_map.world_to_map(self.position[0], self.position[1])
+        goal_cell = self.occupancy_map.world_to_map(goal_world_pos[0], goal_world_pos[1])
+        
+        path_cells = astar(grid, start_cell, goal_cell, threshold=0.6)
+        if path_cells is None:
+            print("No path found")
+            return []
+
+        # Convert to world coords
+        return [self.occupancy_map.map_to_world(ix, iy) for (ix, iy) in path_cells]
+
