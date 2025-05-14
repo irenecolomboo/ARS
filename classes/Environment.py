@@ -13,42 +13,88 @@ class Environment:
             (width - wall_thickness, height - wall_thickness, wall_thickness, height - wall_thickness),  
             (wall_thickness, height - wall_thickness, wall_thickness, wall_thickness)  
         ]
-        # 1 Empty plane
-        # self.walls += [
-        # ]
 
-
-        # 2 Concave "C" shape in the middle left to check for concavity
-        # self.walls += [
-        #
-        #     (200, 150, 200, 450),
-        #     (200, 150, 400, 150),
-        #     (200, 450, 400, 450),
-        # ]
-
-        # 3 maze
+        # 4 Airport
         self.walls += [
+            (10, 100, 204, 100),
+            (200, 105, 200, 148),
+            (300, 155, 300, 100),
+            (300, 100, 405, 100),
+            (300, 10, 300, 100),
+            (10, 150, 200, 150),
+            (306, 150, 790, 150),
 
-            (10, 100, 600, 100),
-            (200, 200, 790, 200),
-            (10, 300, 600, 300),
-            (200, 400, 790, 400),
-            (10, 500, 600, 500),
+            # Top cube on the right
+            (300, 245, 690, 245),
+            # (300, 270, 690, 270),
+            # (300, 220, 300, 270),
+            # (690, 220, 690, 270),
+
+            # Middle cube on the right
+            (300, 365, 790, 365),
+            # (300, 390, 790, 390),
+            # (300, 340, 300, 390),
+            # (790, 340, 790, 390),
+
+            # Last cube on the right
+            (320, 485, 690, 485),
+            # (320, 510, 690, 510),
+            # (300, 460, 320, 510),
+            # (690, 460, 690, 510),
+
+            # Top cube on the left
+            (10, 245, 200, 245),
+            # (10, 270, 200, 270),
+            (10, 220, 10, 270),
+            # (200, 220, 200, 270),
+
+            # Middle cube on the left
+            (10, 365, 200, 365),
+            # (10, 390, 200, 390),
+            # (10, 340, 10, 390),
+            # (200, 340, 200, 390),
+
+            # Last cube on the left
+            (10, 485, 210, 485),
+            # (10, 510, 220, 510),
+            (10, 460, 10, 510),
+            # (200, 460, 220, 510),
         ]
 
         self.landmarks = [
+            (10, 10),
             (200, 10),  # (x, y)
-            (500, 10),
-            (500, 100),
-            (350, 100),
-            (50, 100),
-            (300, 200),
-            (500, 200),
-            (700, 200),
-            (200, 500),
-            (600, 500)
+            (375, 125),
+            (150, 125),
+            (152, 365),
+            (375, 365),
+            (660, 240),
+            (660, 365),
         ]
 
+        self.road_h = pygame.image.load("road.jpg")
+        self.road_h = pygame.transform.rotozoom(self.road_h, 0, 0.15)
+
+        self.road_v = pygame.image.load("road.jpg")
+        self.road_v = pygame.transform.rotozoom(self.road_v, 90, 0.255)
+
+        self.road_d = pygame.image.load("road.jpg")
+        self.road_d = pygame.transform.rotozoom(self.road_d, 110, 0.22)
+
+        self.grass = pygame.image.load("grass.jpg")
+        self.grass = pygame.transform.rotozoom(self.grass, 0, 2)
+
+        self.tower = pygame.image.load("control_tower.png")
+        self.tower = pygame.transform.rotozoom(self.tower, 0, 0.2)
+
+        self.parking = pygame.image.load("parking.png")
+        self.parking = pygame.transform.rotozoom(self.parking, 0, 0.8)
+
+    def get_walls(self):
+        return self.walls
+
+    def get_landmarks(self):
+        return [(375, 125), (150, 125), (375, 365), (150, 365), (660, 240), (660, 365)]
 
     def draw(self, screen):
         wall_color = (200, 0, 0)
@@ -57,9 +103,43 @@ class Environment:
 
         for x, y in self.landmarks:
             pygame.draw.circle(screen, (0, 0, 255), (int(x), int(y)), 6)
+        
+        rotated_image = pygame.transform.rotate(self.grass, 0)
+        new_rect2 = rotated_image.get_rect(center=(170, 240))
+        screen.blit(self.grass, new_rect2)
 
-    def get_walls(self):
-        return self.walls
+        rotated_image = pygame.transform.rotate(self.tower, 0)
+        tower_positions = [(375, 125), (150, 125), (375, 365), (150, 365), (660, 240), (660, 365)]
+        for pos in tower_positions:
+            new_rect2 = rotated_image.get_rect(center=pos)
+            screen.blit(self.tower, new_rect2)
 
-    def get_landmarks(self):
-        return self.landmarks
+        rotated_image = pygame.transform.rotate(self.road_d, 0)
+        new_rect2 = rotated_image.get_rect(center=(270, 500))
+        screen.blit(self.road_d, new_rect2)
+
+        rotated_image = pygame.transform.rotate(self.road_v, 0)
+        total = 200
+        for _ in range(3):
+            new_rect2 = rotated_image.get_rect(center=(250, total))
+            screen.blit(self.road_v, new_rect2)
+            total += 80
+
+        total = 247
+        for _ in range(2):
+            new_rect2 = rotated_image.get_rect(center=(740, total))
+            screen.blit(self.road_v, new_rect2)
+            total += 240
+
+        rotated_image = pygame.transform.rotate(self.road_h, 0)
+        total = 45
+        for _ in range(7):
+            screen.blit(rotated_image, rotated_image.get_rect(center=(total, 185)))
+            screen.blit(rotated_image, rotated_image.get_rect(center=(total, 305)))
+            screen.blit(rotated_image, rotated_image.get_rect(center=(total, 425)))
+            screen.blit(rotated_image, rotated_image.get_rect(center=(total, 550)))
+            total += 120
+
+        parking_image = pygame.transform.rotate(self.parking, 0)
+        screen.blit(parking_image, parking_image.get_rect(center=(135, 55)))
+        screen.blit(parking_image, parking_image.get_rect(center=(277, 55)))
