@@ -223,6 +223,66 @@ class Robot:
         return pos.flatten()
 
     def draw(self, screen, screen_Grid):
+
+        # Grass
+        rotated_image = pygame.transform.rotate(self.grass, 0)
+        new_rect2 = rotated_image.get_rect(center=(170, 240))
+        screen.blit(self.grass, new_rect2)
+
+        # Control Tower
+        rotated_image = pygame.transform.rotate(self.tower, 0)
+        new_rect2 = rotated_image.get_rect(center=(375, 125))
+        screen.blit(self.tower, new_rect2)
+        new_rect2 = rotated_image.get_rect(center=(150, 125))
+        screen.blit(self.tower, new_rect2)
+        new_rect2 = rotated_image.get_rect(center=(375, 365))
+        screen.blit(self.tower, new_rect2)
+        new_rect2 = rotated_image.get_rect(center=(150, 365))
+        screen.blit(self.tower, new_rect2)
+
+        new_rect2 = rotated_image.get_rect(center=(660, 240))
+        screen.blit(self.tower, new_rect2)
+        new_rect2 = rotated_image.get_rect(center=(660, 365))
+        screen.blit(self.tower, new_rect2)
+
+        # Make road diagonal
+        rotated_image = pygame.transform.rotate(self.roadd, 0)
+        new_rect2 = rotated_image.get_rect(center=(270, 500))
+        screen.blit(self.roadd, new_rect2)
+
+        # Make road vertical
+        rotated_image = pygame.transform.rotate(self.roadv, 0)
+        total = 200
+        for i in range(3):
+            new_rect2 = rotated_image.get_rect(center=(250, total))
+            screen.blit(self.roadv, new_rect2)
+            total = total + 80
+        total = 247
+        for i in range(2):
+            new_rect2 = rotated_image.get_rect(center=(740, total))
+            screen.blit(self.roadv, new_rect2)
+            total = total + 240
+
+        # Make road horizontal
+        rotated_image = pygame.transform.rotate(self.road, 0)
+        total = 45
+        for i in range(7):
+            new_rect2 = rotated_image.get_rect(center=(total, 185))
+            screen.blit(self.road, new_rect2)
+            new_rect2 = rotated_image.get_rect(center=(total, 305))
+            screen.blit(self.road, new_rect2)
+            new_rect2 = rotated_image.get_rect(center=(total, 425))
+            screen.blit(self.road, new_rect2)
+            new_rect2 = rotated_image.get_rect(center=(total, 550))
+            screen.blit(self.road, new_rect2)
+            total = total + 120
+
+        #
+        parking_image = pygame.transform.rotate(self.parking, 0)
+        parking_zone = parking_image.get_rect(center=(135, 55))
+        screen.blit(self.parking, parking_zone)
+        parking_zone2 = parking_image.get_rect(center=(277, 55))
+        screen.blit(self.parking,parking_zone2)
         
         # Player draw
         # pygame.draw.circle(screen, (255, 100, 50), (int(self.position[0]), int(self.position[1])), self.radius)

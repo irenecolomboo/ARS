@@ -33,7 +33,7 @@ def main():
 
     best_path = None
     best_path_points = []
-    goal = (50, 55)  # goal in grid coords
+    goal = (88, 38)  # goal in grid coords
     goal_px = (
         goal[0] * robot.occupancy_map.resolution,
         goal[1] * robot.occupancy_map.resolution
@@ -70,7 +70,7 @@ def main():
         # === Stop at goal ===
         dx = abs(robot.position[0] - goal_px[0])
         dy = abs(robot.position[1] - goal_px[1])
-        if dx < 4 and dy < 4:
+        if dx < 8 and dy < 8:
             follow_path = False
             robot.V_l = 0
             robot.V_r = 0
@@ -80,27 +80,22 @@ def main():
         # === Follow path logic ===
         if follow_path and best_path is not None:
             if target_px is None and path_step_index < len(best_path):
-                move = best_path[path_step_index]
-                robot.follow_move_command(move)
+                for move in best_path:
+                    #move = best_path[path_step_index]
+                    robot.follow_move_command(move)
 
-                # Set target pixel position
-                target_px = robot.position.copy()
-                gx, gy = best_path_points[path_step_index]
-                target_px = [
-                    gx * robot.occupancy_map.resolution,
-                    gy * robot.occupancy_map.resolution
-                ]
+                    robot.update()
+                    robot.draw(sim.screen, grid_surface)
 
- #               if move == "UP":
- #                   target_px[1] -= robot.occupancy_map.resolution
- #               elif move == "DOWN":
- #                   target_px[1] += robot.occupancy_map.resolution
- #               elif move == "LEFT":
- #                   target_px[0] -= robot.occupancy_map.resolution
- #               elif move == "RIGHT":
- #                   target_px[0] += robot.occupancy_map.resolution
+                    # Set target pixel position
+                    target_px = robot.position.copy()
+                    gx, gy = best_path_points[path_step_index]
+                    target_px = [
+                        gx * robot.occupancy_map.resolution,
+                        gy * robot.occupancy_map.resolution
+                    ]
 
-                print(f"[MOVE] Step {path_step_index}: {move} → Target {target_px}")
+                    print(f"[MOVE] Step : {move} → Target {target_px}")
 
             if target_px is not None:
                 dx = abs(robot.position[0] - target_px[0])
