@@ -1,14 +1,10 @@
 """
-StandardKalmanFilter.py
-------------------------
-This class implements a basic 2D constant velocity Kalman Filter for tracking a robot's position.
-
 Mathematical highlights:
-- State: [x, y, vx, vy]
-- Prediction step:
+State: [x, y, vx, vy]
+Prediction step:
     2. x' = A x + B x  (predict next state)
     3. P' = A P Aᵀ + Q (predict next uncertainty)
-- Update step:
+Update step:
     y = z - Cx      (innovation)
     S = C P Cᵀ + R  (innovation covariance)
     4. K = P Cᵀ S⁻¹    (Kalman gain)

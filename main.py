@@ -1,5 +1,4 @@
 import pygame
-import numpy as np
 from classes.Simulator import Simulator
 from classes.Robot import Robot
 from classes.Environment import Environment

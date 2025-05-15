@@ -11,7 +11,6 @@ def random_path(length=30):
 # Fitness Function
 def fitness(path, start, goal, grid):
     x, y = start
-    #print(x, y)
     visited = set()
     penalty = 0
     reward = 0
@@ -25,12 +24,12 @@ def fitness(path, start, goal, grid):
         elif move == "RIGHT":
             x += 1
 
-        # Out of bounds
+        # Penalty for out of bounds
         if not (0 <= x < grid.shape[0] and 0 <= y < grid.shape[1]):
             penalty += 10000
             break
 
-        # Hit obstacle
+        # Penalty of going into an obstacle
         if grid[x, y] > 0.6:
             penalty += 10000
             break
@@ -41,7 +40,7 @@ def fitness(path, start, goal, grid):
 
         # Reward progress towards goal
         dist_to_goal = abs(goal[0] - x) + abs(goal[1] - y)
-        reward -= dist_to_goal*dist_to_goal * 0.005  # scaled down
+        reward -= dist_to_goal*dist_to_goal * 0.005  # square the distance to allow for better fitness when making progression from further away but need to scaled down
 
     # Final distance to goal matters
     final_dist = abs(goal[0] - x) + abs(goal[1] - y)
@@ -73,7 +72,6 @@ def run_genetic_algorithm(start, goal, grid, generations=100, pop_size=100, path
     for gen in range(generations):
         scores = [fitness(ind, start, goal, grid) for ind in population]
         best = max(scores)
-        # print(f"Generation {gen}, best fitness: {best}")
         if best >= -1: break  # found solution
 
         new_population = []

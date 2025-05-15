@@ -49,7 +49,7 @@ class Environment:
         #     (600, 500)
         # ]
 
-        # 4 Airport
+        # 4 Airport decided to remove some walls to increase the rendering speed
         self.walls += [
             (10, 100, 204, 100),
             (200, 105, 200, 148),

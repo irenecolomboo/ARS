@@ -13,9 +13,8 @@ class Robot:
 
         self.position = list(position)
         self.start_position = list(position)  # Save the initial starting position
-        self.start_angle = angle              # Save initial orientation    
+        self.start_angle = angle              # Save initial orientation
 
-        self.previousposition = list(position)
         self.radius = radius
         self.angle = angle
 
@@ -116,15 +115,16 @@ class Robot:
         v = (self.V_r + self.V_l) / 2
         omega = (self.V_r - self.V_l) / self.wheel_base
 
-        # new position
+        # Calculate the new position
         proposed_angle = self.angle + omega * dt
         dx = v * math.cos(proposed_angle) * dt
         dy = -v * math.sin(proposed_angle) * dt
         proposed_position = (self.position[0] + dx, self.position[1] + dy)
 
-        # Check collisions
+        # based on the proposed position see if there is any collision
         corrected_position = self.collision_handler.handle_collision(self, proposed_position)
 
+        # Add the values to the actual robot class
         self.angle = proposed_angle
         self.position = list(corrected_position)
 
@@ -134,7 +134,7 @@ class Robot:
         # Update occupancy map with scan points
         self.occupancy_map.update_from_scan(self.position, self.sensors.scan_points, max_range=self.sensors.max_distance)
 
-        # Kalman filter
+        # Get the values to be used in the Kalman filter
         current_vx = self.kf.x[2]
         current_vy = self.kf.x[3]
         ax_cmd = (dx - current_vx) / dt
@@ -143,7 +143,6 @@ class Robot:
 
         self.kf.predict(dt, control_input)
 
-        # Simulated noisy measurement (from a sensor, e.g., GPS)
         true_pos = self.position
         landmarks = self.environment.get_landmarks()
         distances = []
@@ -160,16 +159,16 @@ class Robot:
 
         if(len(distances) > 1):
             pos = self.triangulate_with_bearing(copy, distances, bearings)
-            self.previousposition = pos
             self.uncertainty_radius = self.min_uncertainty
         else:
-            pos = self.previousposition
             self.uncertainty_radius = min(self.uncertainty_radius + (self.V_l + self.V_r)/4, self.max_uncertainty)
             pos = self.kf.get_state()[:2]
 
+        # Simulated noisy measurement (from a sensor, e.g., GPS)
         noisy_measurement = pos + np.random.normal(0, 1.0, size=2)
         self.kf.update(noisy_measurement)
 
+        # get the estimated state based on the KF and add it to the trajectory list to be displayed later on
         estimated_state = self.kf.get_state()
         self.estimate_trajectory.append(estimated_state[:2])
 
@@ -224,12 +223,12 @@ class Robot:
 
     def draw(self, screen, screen_Grid):
 
-        # Grass
+        # Put the grass texture
         rotated_image = pygame.transform.rotate(self.grass, 0)
         new_rect2 = rotated_image.get_rect(center=(170, 240))
         screen.blit(self.grass, new_rect2)
 
-        # Control Tower
+        # Put the Control Tower texture on the landmarks
         rotated_image = pygame.transform.rotate(self.tower, 0)
         new_rect2 = rotated_image.get_rect(center=(375, 125))
         screen.blit(self.tower, new_rect2)
@@ -245,12 +244,12 @@ class Robot:
         new_rect2 = rotated_image.get_rect(center=(660, 365))
         screen.blit(self.tower, new_rect2)
 
-        # Make road diagonal
+        # Put texture for the diagonal roads
         rotated_image = pygame.transform.rotate(self.roadd, 0)
         new_rect2 = rotated_image.get_rect(center=(270, 500))
         screen.blit(self.roadd, new_rect2)
 
-        # Make road vertical
+        # put texture for the vertical roads
         rotated_image = pygame.transform.rotate(self.roadv, 0)
         total = 200
         for i in range(3):
@@ -263,7 +262,7 @@ class Robot:
             screen.blit(self.roadv, new_rect2)
             total = total + 240
 
-        # Make road horizontal
+        # put texture for the horizontal roads
         rotated_image = pygame.transform.rotate(self.road, 0)
         total = 45
         for i in range(7):
@@ -277,14 +276,14 @@ class Robot:
             screen.blit(self.road, new_rect2)
             total = total + 120
 
-        #
+        # Texture for the plane parking area
         parking_image = pygame.transform.rotate(self.parking, 0)
         parking_zone = parking_image.get_rect(center=(135, 55))
         screen.blit(self.parking, parking_zone)
         parking_zone2 = parking_image.get_rect(center=(277, 55))
         screen.blit(self.parking,parking_zone2)
         
-        # Player draw
+        # Player draw and add the plane texture to it
         # pygame.draw.circle(screen, (255, 100, 50), (int(self.position[0]), int(self.position[1])), self.radius)
         # Rotate the image by converting angle from radians to degrees.
         rotated_image = pygame.transform.rotate(self.image, math.degrees(self.angle))
@@ -304,12 +303,6 @@ class Robot:
         self.sensors.draw(screen)
 
         self.occupancy_map.draw_map_on_screen(screen_Grid, self.trajectory, self.estimate_trajectory, scale=4)
-
-        # if len(self.trajectory) > 1:
-        #     pygame.draw.lines(screen, (0, 255, 0), False, self.trajectory, 2)
-        #
-        # if len(self.estimate_trajectory) > 1:
-        #     pygame.draw.lines(screen, (0, 255, 0), False, self.estimate_trajectory, 2)
 
         pygame.draw.circle(screen, (0, 0, 255), (int(self.position[0]), int(self.position[1])), int(self.uncertainty_radius), 2)
 

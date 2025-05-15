@@ -1,16 +1,12 @@
 import numpy as np
-import math
 import pygame
 
 class OccupancyGridMap:
     def __init__(self, width_m, height_m, resolution):
         """
-        Initialize the occupancy grid map.
-
-        Args:
-            width_m (float): Width of the map in meters.
-            height_m (float): Height of the map in meters.
-            resolution (float): Size of one grid cell in meters.
+        width_m (float): width of the map in meters
+        height_m (float): height of the map in meters
+        resolution (float): size of one grid cell in meters
         """
         self.resolution = 8
         self.width_cells = int(np.ceil(width_m / resolution))
@@ -22,19 +18,19 @@ class OccupancyGridMap:
         self.estimate_trajectory = []
 
     def world_to_map(self, x, y):
-        """Convert world coordinates (meters) to grid indices (ix, iy)."""
+        #Convert meters into grid indices
         ix = int(x / self.resolution)
         iy = int(y / self.resolution)
         return ix, iy
 
     def map_to_world(self, ix, iy):
-        """Convert grid indices (ix, iy) to world coordinates (meters)."""
+        #Convert grid indices to meters
         x = ix * self.resolution
         y = iy * self.resolution
         return x, y
 
     def prob_to_log_odds(self, p):
-        """Convert a probability to log-odds representation."""
+        #Convert a probability to log-odds representation.
         return np.log(p / (1 - p))
     
     def log_odds_to_prob(self, l):
@@ -42,7 +38,7 @@ class OccupancyGridMap:
         return 1 - 1 / (1 + np.exp(l))
     
     def bresenham(self, x0, y0, x1, y1):
-        """Yield grid cells along the line from (x0, y0) to (x1, y1) using Bresenham's algorithm."""
+        #Yield grid cells along the line from (x0, y0) to (x1, y1)
         x0, y0, x1, y1 = int(x0), int(y0), int(x1), int(y1)
         dx = abs(x1 - x0)
         dy = -abs(y1 - y0)
@@ -79,7 +75,7 @@ class OccupancyGridMap:
             if 0 <= iy_hit < self.height_cells and 0 <= ix_hit < self.width_cells:
                 self.grid[iy_hit, ix_hit] += l_occ
 
-        # Clamp grid values to avoid overflow
+        # clamp grid values to avoid overflow
         self.grid = np.clip(self.grid, -10, 10)
 
 
@@ -114,7 +110,6 @@ class OccupancyGridMap:
                 rect = pygame.Rect(x * scale, y * scale, scale, scale)
                 pygame.draw.rect(screen, color, rect)
 
-        #print(estimate_trajectory)
         if len(trajectory) > 1:
             pygame.draw.lines(screen, (0, 255, 0), False, trajectory, 2)
 
@@ -122,12 +117,7 @@ class OccupancyGridMap:
             pygame.draw.lines(screen, (0, 255, 0), False, estimate_trajectory, 2)
 
 
-        #pygame.draw.circle(screen, (255, 100, 50), (int(100), int(100)), 50)
-
-
     def get_probability_grid(self):
-        """
-        Return a grid of probabilities from the log-odds grid.
-        """
+        # return grid of probabilities from log-odds grid
         return self.log_odds_to_prob(self.grid)
 

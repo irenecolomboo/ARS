@@ -1,7 +1,6 @@
 import math
 import pygame
 from shapely.geometry import LineString
-import numpy as np
 
 class Sensors:
     def __init__(self, robot, max_distance=200, num_sensors=12):
